@@ -1,6 +1,8 @@
 import type React from "react"
 import { ThemeProvider } from "@/components/theme-provider"
 import { SidebarProvider } from "@/components/sidebar-provider"
+import { AuthProvider } from "@/hooks/use-auth"
+import { AuthGuard } from "@/components/auth-guard"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import type { Metadata } from "next"
@@ -22,7 +24,11 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <SidebarProvider>{children}</SidebarProvider>
+          <AuthProvider>
+            <AuthGuard>
+              <SidebarProvider>{children}</SidebarProvider>
+            </AuthGuard>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useSidebar } from "@/components/sidebar-provider"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Bell, Search, Menu, X, Sun, Moon } from "lucide-react"
+import { Bell, Search, Menu, X, Sun, Moon, LogOut, User, Settings } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,11 +15,23 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useTheme } from "next-themes"
+import { useAuth } from "@/hooks/use-auth"
 
 export default function TopNavbar() {
   const { toggle, isOpen } = useSidebar()
   const [showSearch, setShowSearch] = useState(false)
   const { setTheme, theme } = useTheme()
+  const { user, logout } = useAuth()
+
+  // Pobranie inicjałów z emaila użytkownika
+  const getInitials = (email: string) => {
+    if (!email) return "U"
+    const parts = email.split("@")[0].split(".")
+    if (parts.length > 1) {
+      return (parts[0][0] + parts[1][0]).toUpperCase()
+    }
+    return email.substring(0, 2).toUpperCase()
+  }
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background">
@@ -80,18 +92,31 @@ export default function TopNavbar() {
               <Button variant="ghost" size="icon" className="rounded-full">
                 <Avatar>
                   <AvatarImage src="/placeholder.svg" alt="User" />
-                  <AvatarFallback>JD</AvatarFallback>
+                  <AvatarFallback>{user ? getInitials(user.email) : "U"}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuLabel>
+                {user?.email}
+                <div className="text-xs font-normal text-muted-foreground mt-1">
+                  {user?.role || "Użytkownik"}
+                </div>
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Profile</DropdownMenuItem>
-              <DropdownMenuItem>Settings</DropdownMenuItem>
-              <DropdownMenuItem>Billing</DropdownMenuItem>
+              <DropdownMenuItem>
+                <User size={16} className="mr-2" />
+                Profil
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Settings size={16} className="mr-2" />
+                Ustawienia
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Logout</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => logout()}>
+                <LogOut size={16} className="mr-2" />
+                Wyloguj
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

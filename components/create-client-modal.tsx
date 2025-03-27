@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -17,8 +17,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "@/hooks/use-toast"
 import { type Client, addClient } from "@/lib/superbase"
+import { useAuth } from "@/hooks/use-auth"
 
 // Schemat formularza klienta
 const clientFormSchema = z.object({
@@ -43,8 +45,13 @@ const clientFormSchema = z.object({
   Birthday: z.string().optional(),
   Notes: z.string().optional(),
   Creator: z.string().optional(),
-  Firma: z.string().optional(),
-  NumerSprawy: z.string().optional(),
+  DataZloWnio: z.string().optional(),
+  FormWni: z.boolean().default(false),
+  ZalNrJed: z.boolean().default(false),
+  KopiaPasz: z.boolean().default(false),
+  ZalBlue: z.boolean().default(false),
+  CzteZdjecia: z.boolean().default(false),
+  Pelnomocnictwo: z.boolean().default(false),
 })
 
 type ClientFormValues = z.infer<typeof clientFormSchema>
@@ -57,6 +64,7 @@ interface CreateClientModalProps {
 
 export function CreateClientModal({ open, onOpenChange, onClientCreated }: CreateClientModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const { user } = useAuth() // Pobieranie informacji o zalogowanym użytkowniku
 
   // Inicjalizacja formularza z wartościami domyślnymi
   const form = useForm<ClientFormValues>({
@@ -74,14 +82,20 @@ export function CreateClientModal({ open, onOpenChange, onClientCreated }: Creat
       Birthday: "",
       Notes: "",
       Creator: "",
-      Firma: "",
-      NumerSprawy: "",
+      DataZloWnio: "",
+      FormWni: false,
+      ZalNrJed: false,
+      KopiaPasz: false,
+      ZalBlue: false,
+      CzteZdjecia: false,
+      Pelnomocnictwo: false,
     },
   })
 
   // Obsługa przesyłania formularza
   async function onSubmit(data: ClientFormValues) {
     setIsSubmitting(true)
+    console.log("Rozpoczynam dodawanie klienta:", data);
 
     try {
       // Przygotowanie danych klienta - konwersja undefined na null
@@ -96,29 +110,37 @@ export function CreateClientModal({ open, onOpenChange, onClientCreated }: Creat
         Email: data.Email || null,
         Birthday: data.Birthday || null,
         Notes: data.Notes || null,
-        Creator: data.Creator || null,
-        Firma: data.Firma || null,
-        NumerSprawy: data.NumerSprawy || null,
-        DataZloWnio: new Date().toISOString(),
+        Creator: user?.email || null, // Automatyczne przypisanie aktualnego użytkownika
+        // Formatowanie DataZloWnio tylko jeśli została podana
+        DataZloWnio: data.DataZloWnio ? new Date(data.DataZloWnio).toISOString() : null,
+        // Formatowanie CreatedTime do jednolitego formatu
+        CreatedDate: new Date().toISOString(),
         TotalSpend: "0",
         Doc: "",
+        NumerSprawy: null,
+        Firma: null,
         Inspektor: "",
         DataWydWni: null,
         DataOdbKartyPob: "",
         DataOdbDecyzji: "",
         DataZakLegPob: "",
-        FormWni: "No",
-        ZalNrJed: "No",
-        KopiaPasz: "No",
-        ZalBlue: "No",
-        CzteZdjecia: "No",
-        Pelnomocnictwo: "No",
+        FormWni: data.FormWni ? "Yes" : "No",
+        ZalNrJed: data.ZalNrJed ? "Yes" : "No",
+        KopiaPasz: data.KopiaPasz ? "Yes" : "No",
+        ZalBlue: data.ZalBlue ? "Yes" : "No",
+        CzteZdjecia: data.CzteZdjecia ? "Yes" : "No",
+        Pelnomocnictwo: data.Pelnomocnictwo ? "Yes" : "No",
       }
 
+      console.log("Wysyłanie danych klienta:", clientData);
+
       // Dodanie klienta do bazy danych
+      console.log("Przed wywołaniem addClient...");
       const newClient = await addClient(clientData)
+      console.log("Po wywołaniu addClient, rezultat:", newClient);
 
       if (!newClient) {
+        console.error("Nie otrzymano danych nowego klienta");
         throw new Error("Nie udało się dodać klienta")
       }
 
@@ -137,7 +159,7 @@ export function CreateClientModal({ open, onOpenChange, onClientCreated }: Creat
       form.reset()
       onOpenChange(false)
     } catch (error) {
-      console.error("Błąd podczas dodawania klienta:", error)
+      console.error("Szczegółowy błąd podczas dodawania klienta:", error)
       toast({
         title: "Błąd",
         description: "Nie udało się dodać klienta. Spróbuj ponownie później.",
@@ -246,6 +268,36 @@ export function CreateClientModal({ open, onOpenChange, onClientCreated }: Creat
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
+                name="DataZloWnio"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Data złożenia wniosku</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="Birthday"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Data urodzenia</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <FormField
+                control={form.control}
                 name="CelPobytu"
                 render={({ field }) => (
                   <FormItem>
@@ -293,36 +345,6 @@ export function CreateClientModal({ open, onOpenChange, onClientCreated }: Creat
               />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="Firma"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Firma</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Nazwa firmy" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="NumerSprawy"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Numer sprawy</FormLabel>
-                    <FormControl>
-                      <Input placeholder="S.C.-V.6151.1.12345.2024" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
             <FormField
               control={form.control}
               name="Notes"
@@ -340,6 +362,107 @@ export function CreateClientModal({ open, onOpenChange, onClientCreated }: Creat
                 </FormItem>
               )}
             />
+
+            <div className="space-y-2">
+              <FormLabel>Dokumenty</FormLabel>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="FormWni"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox 
+                          checked={field.value} 
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormLabel className="font-normal">Formularz wniosku</FormLabel>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="ZalNrJed"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox 
+                          checked={field.value} 
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormLabel className="font-normal">Załącznik nr 1</FormLabel>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="KopiaPasz"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox 
+                          checked={field.value} 
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormLabel className="font-normal">Kopia paszportu</FormLabel>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="ZalBlue"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox 
+                          checked={field.value} 
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormLabel className="font-normal">Niebieska karta</FormLabel>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="CzteZdjecia"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox 
+                          checked={field.value} 
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormLabel className="font-normal">4 zdjęcia</FormLabel>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="Pelnomocnictwo"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox 
+                          checked={field.value} 
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormLabel className="font-normal">Pełnomocnictwo</FormLabel>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
 
             <DialogFooter className="pt-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>

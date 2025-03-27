@@ -39,17 +39,7 @@ const navSections: NavSection[] = [
         title: "Dashboard",
         href: "/",
         icon: LayoutDashboard,
-      },
-      {
-        title: "Analytics",
-        href: "/analytics",
-        icon: BarChart3,
-      },
-    ],
-  },
-  {
-    title: "Management",
-    items: [
+      },      
       {
         title: "Clients",
         href: "/clients",

@@ -38,6 +38,7 @@ import {
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { type Client, updateClient } from "@/lib/superbase"
+import { Checkbox } from "@/components/ui/checkbox"
 
 // Schemat formularza klienta
 const clientFormSchema = z.object({
@@ -66,6 +67,12 @@ const clientFormSchema = z.object({
   NumerSprawy: z.string().optional(),
   Inspektor: z.string().optional(),
   Firma: z.string().optional(),
+  FormWni: z.boolean().default(false),
+  ZalNrJed: z.boolean().default(false),
+  KopiaPasz: z.boolean().default(false),
+  ZalBlue: z.boolean().default(false),
+  CzteZdjecia: z.boolean().default(false),
+  Pelnomocnictwo: z.boolean().default(false),
 })
 
 type ClientFormValues = z.infer<typeof clientFormSchema>
@@ -101,6 +108,12 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
       NumerSprawy: "",
       Inspektor: "",
       Firma: "",
+      FormWni: false,
+      ZalNrJed: false,
+      KopiaPasz: false,
+      ZalBlue: false,
+      CzteZdjecia: false,
+      Pelnomocnictwo: false,
     },
   })
 
@@ -110,8 +123,8 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
       form.reset({
         Name: client.Name || "",
         Status: client.Status || "",
-        CelPobytu: client.CelPobytu || "",
-        PodLegPob: client.PodLegPob || "",
+        CelPobytu: client.CelPobytu || "none",
+        PodLegPob: client.PodLegPob || "none",
         KrajPoch: client.KrajPoch || "",
         Phone: client.Phone || "",
         StatusPla: client.StatusPla || "",
@@ -123,9 +136,30 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
         NumerSprawy: client.NumerSprawy || "",
         Inspektor: client.Inspektor || "",
         Firma: client.Firma || "",
+        FormWni: isYes(client.FormWni),
+        ZalNrJed: isYes(client.ZalNrJed),
+        KopiaPasz: isYes(client.KopiaPasz),
+        ZalBlue: isYes(client.ZalBlue),
+        CzteZdjecia: isYes(client.CzteZdjecia),
+        Pelnomocnictwo: isYes(client.Pelnomocnictwo),
       })
     }
   }, [client, form])
+
+  // Debugowanie danych dokumentów
+  useEffect(() => {
+    if (client) {
+      console.log("Dane dokumentów w komponencie (useEffect):", {
+        FormWni: client.FormWni,
+        ZalNrJed: client.ZalNrJed, 
+        KopiaPasz: client.KopiaPasz,
+        ZalBlue: client.ZalBlue,
+        CzteZdjecia: client.CzteZdjecia,
+        Pelnomocnictwo: client.Pelnomocnictwo,
+        "typeof FormWni": typeof client.FormWni
+      });
+    }
+  }, [client]);
 
   // Obsługa przesyłania formularza
   async function onSubmit(data: ClientFormValues) {
@@ -134,16 +168,60 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
     setIsSubmitting(true)
 
     try {
+      // Przygotuj dane z poprawną obsługą wartości "none"
+      const processedData = {
+        ...data,
+        CelPobytu: data.CelPobytu === "none" ? null : data.CelPobytu,
+        PodLegPob: data.PodLegPob === "none" ? null : data.PodLegPob,
+        FormWni: data.FormWni ? "Yes" : "No",
+        ZalNrJed: data.ZalNrJed ? "Yes" : "No",
+        KopiaPasz: data.KopiaPasz ? "Yes" : "No",
+        ZalBlue: data.ZalBlue ? "Yes" : "No",
+        CzteZdjecia: data.CzteZdjecia ? "Yes" : "No",
+        Pelnomocnictwo: data.Pelnomocnictwo ? "Yes" : "No",
+      }
+
+      console.log("Wysyłanie danych do aktualizacji:", processedData);
+      console.log("Dane dokumentów:", {
+        FormWni: processedData.FormWni,
+        ZalNrJed: processedData.ZalNrJed,
+        KopiaPasz: processedData.KopiaPasz,
+        ZalBlue: processedData.ZalBlue,
+        CzteZdjecia: processedData.CzteZdjecia,
+        Pelnomocnictwo: processedData.Pelnomocnictwo,
+      });
+
       // Aktualizacja klienta w bazie danych
-      const updatedClient = await updateClient(client.id, data)
+      const updatedClient = await updateClient(client.id, processedData)
 
       if (!updatedClient) {
         throw new Error("Nie udało się zaktualizować klienta")
       }
 
+      console.log("Zaktualizowany klient otrzymany z bazy:", updatedClient);
+      console.log("Dane dokumentów po aktualizacji:", {
+        FormWni: updatedClient.FormWni,
+        ZalNrJed: updatedClient.ZalNrJed,
+        KopiaPasz: updatedClient.KopiaPasz,
+        ZalBlue: updatedClient.ZalBlue,
+        CzteZdjecia: updatedClient.CzteZdjecia,
+        Pelnomocnictwo: updatedClient.Pelnomocnictwo,
+      });
+
       // Wywołanie callbacka, jeśli został dostarczony
       if (onClientUpdated) {
-        onClientUpdated(updatedClient)
+        // Poprawić niezgodności typów w normalizedClient
+        const normalizedClient = {
+          ...updatedClient,
+          FormWni: data.FormWni ? "Yes" : "No",
+          ZalNrJed: data.ZalNrJed ? "Yes" : "No",
+          KopiaPasz: data.KopiaPasz ? "Yes" : "No",
+          ZalBlue: data.ZalBlue ? "Yes" : "No",
+          CzteZdjecia: data.CzteZdjecia ? "Yes" : "No",
+          Pelnomocnictwo: data.Pelnomocnictwo ? "Yes" : "No",
+        };
+        
+        onClientUpdated(normalizedClient);
       }
 
       // Komunikat o powodzeniu
@@ -173,8 +251,8 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
       form.reset({
         Name: client.Name || "",
         Status: client.Status || "",
-        CelPobytu: client.CelPobytu || "",
-        PodLegPob: client.PodLegPob || "",
+        CelPobytu: client.CelPobytu || "none",
+        PodLegPob: client.PodLegPob || "none",
         KrajPoch: client.KrajPoch || "",
         Phone: client.Phone || "",
         StatusPla: client.StatusPla || "",
@@ -186,6 +264,12 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
         NumerSprawy: client.NumerSprawy || "",
         Inspektor: client.Inspektor || "",
         Firma: client.Firma || "",
+        FormWni: isYes(client.FormWni),
+        ZalNrJed: isYes(client.ZalNrJed),
+        KopiaPasz: isYes(client.KopiaPasz),
+        ZalBlue: isYes(client.ZalBlue),
+        CzteZdjecia: isYes(client.CzteZdjecia),
+        Pelnomocnictwo: isYes(client.Pelnomocnictwo),
       })
     }
     setIsEditMode(!isEditMode)
@@ -227,6 +311,14 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
     }
   }
 
+  // Utwórz pomocniczą funkcję do sprawdzania wartości "Yes" 
+  const isYes = (value: any): boolean => {
+    if (value === true || value === "true") return true;
+    if (typeof value === "string" && (value.toLowerCase() === "yes" || value === "Yes")) return true;
+    if (value === 1 || value === "1") return true;
+    return false;
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleDialogClose}>
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
@@ -249,7 +341,7 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
             <Button
               variant="outline"
               size="icon"
-              className="ml-auto h-8 w-8"
+              className="ml-auto h-8 w-8 p-2"
               onClick={toggleEditMode}
               disabled={isSubmitting}
             >
@@ -370,10 +462,21 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
                         name="CelPobytu"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Cel pobytu</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
+                            <FormLabel>Cel Pobytu</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Wybierz Cel Pobytu" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="none">Brak</SelectItem>
+                                <SelectItem value="Praca">Praca</SelectItem>
+                                <SelectItem value="Nauka">Nauka</SelectItem>
+                                <SelectItem value="Rodzina">Rodzina</SelectItem>
+                                <SelectItem value="BlueCard">Blue Card</SelectItem>
+                              </SelectContent>
+                            </Select>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -384,38 +487,22 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
                         name="PodLegPob"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Podstawa legalnego pobytu</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="Firma"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Firma</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="NumerSprawy"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Numer sprawy</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
+                            <FormLabel>Podstawa Legalnego Pobytu</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Wybierz Pods. Legalnego Pobytu" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="none">Brak</SelectItem>
+                                <SelectItem value="Wiza">Wiza</SelectItem>
+                                <SelectItem value="WizaPracownicza">Wiza Pracownicza</SelectItem>
+                                <SelectItem value="WizaStudencka">Wiza Studencka</SelectItem>
+                                <SelectItem value="KartaPobytu">Karta Pobytu</SelectItem>
+                                <SelectItem value="Inne">Inne</SelectItem>
+                              </SelectContent>
+                            </Select>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -435,6 +522,125 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
                         </FormItem>
                       )}
                     />
+
+                    <div className="space-y-2">
+                      <FormLabel>Dokumenty</FormLabel>
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <FormField
+                          control={form.control}
+                          name="FormWni"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                              <FormControl>
+                                <Checkbox 
+                                  checked={field.value} 
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                              <div>
+                                <FormLabel className="font-normal">Formularz wniosku</FormLabel>
+                                <p className="text-xs text-muted-foreground">{field.value ? "Tak" : "Nie"}</p>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="ZalNrJed"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                              <FormControl>
+                                <Checkbox 
+                                  checked={field.value} 
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                              <div>
+                                <FormLabel className="font-normal">Załącznik nr 1</FormLabel>
+                                <p className="text-xs text-muted-foreground">{field.value ? "Tak" : "Nie"}</p>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="KopiaPasz"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                              <FormControl>
+                                <Checkbox 
+                                  checked={field.value} 
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                              <div>
+                                <FormLabel className="font-normal">Kopia paszportu</FormLabel>
+                                <p className="text-xs text-muted-foreground">{field.value ? "Tak" : "Nie"}</p>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="ZalBlue"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                              <FormControl>
+                                <Checkbox 
+                                  checked={field.value} 
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                              <div>
+                                <FormLabel className="font-normal">Niebieska karta</FormLabel>
+                                <p className="text-xs text-muted-foreground">{field.value ? "Tak" : "Nie"}</p>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="CzteZdjecia"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                              <FormControl>
+                                <Checkbox 
+                                  checked={field.value} 
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                              <div>
+                                <FormLabel className="font-normal">4 zdjęcia</FormLabel>
+                                <p className="text-xs text-muted-foreground">{field.value ? "Tak" : "Nie"}</p>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="Pelnomocnictwo"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                              <FormControl>
+                                <Checkbox 
+                                  checked={field.value} 
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                              <div>
+                                <FormLabel className="font-normal">Pełnomocnictwo</FormLabel>
+                                <p className="text-xs text-muted-foreground">{field.value ? "Tak" : "Nie"}</p>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
 
                     <div className="flex justify-end gap-2 pt-2">
                       <Button type="button" variant="outline" onClick={toggleEditMode} disabled={isSubmitting}>
@@ -512,7 +718,7 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
           {!isEditMode && (
             <Tabs defaultValue="details" className="w-full">
               <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="details">Szczegóły sprawy</TabsTrigger>
+                <TabsTrigger value="details">Szczegóły</TabsTrigger>
                 <TabsTrigger value="documents">Dokumenty</TabsTrigger>
                 <TabsTrigger value="notes">Notatki</TabsTrigger>
               </TabsList>
@@ -521,7 +727,7 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
               <TabsContent value="details" className="mt-4">
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">Szczegóły sprawy</CardTitle>
+                    <CardTitle className="text-lg">Szczegóły</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -629,7 +835,9 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
                           <FileCheck className="h-4 w-4 text-muted-foreground" />
                           <div>
                             <p className="text-sm font-medium">Formularz wniosku</p>
-                            <p className="text-sm text-muted-foreground">{client.FormWni === "Yes" ? "Tak" : "Nie"}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {isYes(client.FormWni) ? "Tak" : "Nie"}
+                            </p>
                           </div>
                         </div>
 
@@ -637,7 +845,9 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
                           <FileCheck className="h-4 w-4 text-muted-foreground" />
                           <div>
                             <p className="text-sm font-medium">Załącznik nr jedności</p>
-                            <p className="text-sm text-muted-foreground">{client.ZalNrJed === "Yes" ? "Tak" : "Nie"}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {isYes(client.ZalNrJed) ? "Tak" : "Nie"}
+                            </p>
                           </div>
                         </div>
 
@@ -646,7 +856,7 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
                           <div>
                             <p className="text-sm font-medium">Kopia paszportu</p>
                             <p className="text-sm text-muted-foreground">
-                              {client.KopiaPasz === "Yes" ? "Tak" : "Nie"}
+                              {isYes(client.KopiaPasz) ? "Tak" : "Nie"}
                             </p>
                           </div>
                         </div>
@@ -655,7 +865,9 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
                           <FileCheck className="h-4 w-4 text-muted-foreground" />
                           <div>
                             <p className="text-sm font-medium">Załącznik Blue</p>
-                            <p className="text-sm text-muted-foreground">{client.ZalBlue === "Yes" ? "Tak" : "Nie"}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {isYes(client.ZalBlue) ? "Tak" : "Nie"}
+                            </p>
                           </div>
                         </div>
 
@@ -664,7 +876,7 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
                           <div>
                             <p className="text-sm font-medium">Cztery zdjęcia</p>
                             <p className="text-sm text-muted-foreground">
-                              {client.CzteZdjecia === "Yes" ? "Tak" : "Nie"}
+                              {isYes(client.CzteZdjecia) ? "Tak" : "Nie"}
                             </p>
                           </div>
                         </div>
@@ -674,7 +886,7 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
                           <div>
                             <p className="text-sm font-medium">Pełnomocnictwo</p>
                             <p className="text-sm text-muted-foreground">
-                              {client.Pelnomocnictwo === "Yes" ? "Tak" : "Nie"}
+                              {isYes(client.Pelnomocnictwo) ? "Tak" : "Nie"}
                             </p>
                           </div>
                         </div>

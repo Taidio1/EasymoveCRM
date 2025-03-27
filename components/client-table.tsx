@@ -21,6 +21,20 @@ import { ClientDetailsModal } from "./client-details-modal"
 import { toast } from "@/hooks/use-toast"
 import { type Client, getClients, deleteClient } from "@/lib/superbase"
 
+// Dodaj funkcję formatującą datę na początku komponentu, po deklaracji stanów
+// Funkcja do formatowania daty bez strefy czasowej
+const formatDate = (dateString: string | null | undefined) => {
+  if (!dateString) return "Brak danych";
+  
+  // Sprawdzenie czy data zawiera format GMT
+  if (dateString.includes("GMT")) {
+    // Usuń informację o strefie czasowej
+    return dateString.split(" (")[0];
+  }
+  
+  return dateString;
+};
+
 export default function ClientTable() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
@@ -29,6 +43,7 @@ export default function ClientTable() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [clients, setClients] = useState<Client[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [showCompleted, setShowCompleted] = useState(false)
 
   // Pobieranie klientów z Supabase
   useEffect(() => {
@@ -65,6 +80,11 @@ export default function ClientTable() {
     }
   }
 
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
+
+  
+
   // Obsługa dodawania nowego klienta
   const handleClientCreated = (newClient: Client) => {
     setClients((prevClients) => [newClient, ...prevClients])
@@ -78,8 +98,26 @@ export default function ClientTable() {
 
   // Obsługa aktualizacji klienta
   const handleClientUpdated = (updatedClient: Client) => {
-    setClients((prevClients) => prevClients.map((client) => (client.id === updatedClient.id ? updatedClient : client)))
-    setSelectedClient(updatedClient)
+    console.log("Klient przed aktualizacją w tabeli:", selectedClient);
+    console.log("Zaktualizowany klient przekazany do tabeli:", updatedClient);
+    console.log("Status dokumentów klienta:", {
+      FormWni: updatedClient.FormWni,
+      ZalNrJed: updatedClient.ZalNrJed,
+      KopiaPasz: updatedClient.KopiaPasz,
+      ZalBlue: updatedClient.ZalBlue,
+      CzteZdjecia: updatedClient.CzteZdjecia,
+      Pelnomocnictwo: updatedClient.Pelnomocnictwo,
+    });
+    
+    setClients((prevClients) => prevClients.map((client) => {
+      if (client.id === updatedClient.id) {
+        console.log("Aktualizacja klienta w tabeli:", client.Name);
+        return updatedClient;
+      }
+      return client;
+    }));
+    
+    setSelectedClient(updatedClient);
   }
 
   // Obsługa usuwania klienta
@@ -112,6 +150,7 @@ export default function ClientTable() {
     }
   }
 
+
   // Filtrowanie klientów na podstawie wyszukiwania i statusu
   const filteredClients = clients.filter((client) => {
     const matchesSearch =
@@ -125,9 +164,18 @@ export default function ClientTable() {
       false
 
     const matchesStatus = statusFilter === "all" || client.Status?.toLowerCase() === statusFilter.toLowerCase()
+    
+    // Sprawdź czy klient powinien być wyświetlany zgodnie z filtrem "zakończonych"
+    const matchesCompletedFilter = showCompleted || client.Status?.toLowerCase() !== "zakończony"
 
-    return matchesSearch && matchesStatus
+    return matchesSearch && matchesStatus && matchesCompletedFilter
   })
+
+  const totalPages = Math.ceil(filteredClients.length / itemsPerPage)
+  const paginatedClients = filteredClients.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  )
 
   return (
     <div className="space-y-6">
@@ -156,8 +204,22 @@ export default function ClientTable() {
             <SelectContent>
               <SelectItem value="all">Wszystkie statusy</SelectItem>
               <SelectItem value="aktywny">Aktywny</SelectItem>
-              <SelectItem value="nieaktywny">Nieaktywny</SelectItem>
               <SelectItem value="w trakcie">W trakcie</SelectItem>
+              <SelectItem value="zakończony">zakończony</SelectItem>
+              <SelectItem value="nieaktywny">Nieaktywny</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select 
+            value={showCompleted ? "show" : "hide"} 
+            onValueChange={(value) => setShowCompleted(value === "show")}
+          >
+            <SelectTrigger className="w-full md:w-52">
+              <SelectValue placeholder="Pokaż zakończone" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="hide">Ukryj zakończone</SelectItem>
+              <SelectItem value="show">Pokaż zakończone</SelectItem>
             </SelectContent>
           </Select>
 
@@ -203,10 +265,9 @@ export default function ClientTable() {
                 <TableRow>
                   <TableHead>Imię i nazwisko</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="hidden md:table-cell">Email</TableHead>
-                  <TableHead className="hidden md:table-cell">Telefon</TableHead>
-                  <TableHead className="hidden md:table-cell">Kraj pochodzenia</TableHead>
-                  <TableHead className="hidden md:table-cell">Numer sprawy</TableHead>
+                  <TableHead className="hidden md:table-cell">Cel Pobytu</TableHead>
+                  <TableHead className="hidden md:table-cell">NumerSprawy</TableHead>
+                  <TableHead className="hidden md:table-cell">Data Złożenia Wniosku</TableHead>
                   <TableHead className="text-right">Akcje</TableHead>
                 </TableRow>
               </TableHeader>
@@ -218,26 +279,27 @@ export default function ClientTable() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredClients.map((client) => (
+                  paginatedClients.map((client) => (
                     <TableRow key={client.id}>
                       <TableCell className="font-medium">{client.Name || "Brak danych"}</TableCell>
                       <TableCell>
-                        <Badge
-                          variant={
-                            client.Status?.toLowerCase() === "aktywny"
-                              ? "default"
-                              : client.Status?.toLowerCase() === "nieaktywny"
-                                ? "secondary"
-                                : "outline"
-                          }
-                        >
-                          {client.Status || "Brak danych"}
-                        </Badge>
+                      <Badge
+                        className={
+                          client.Status?.toLowerCase() === "aktywny"
+                            ? "bg-green-100 text-green-800"
+                            : client.Status?.toLowerCase() === "nieaktywny" || client.Status?.toLowerCase() === "zakończony"
+                            ? "bg-red-100 text-red-800"
+                            : client.Status?.toLowerCase() === "w trakcie"
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-gray-100 text-gray-800"
+                        }
+                      >
+                        {client.Status || "Brak danych"}
+                      </Badge>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell">{client.Email || "Brak danych"}</TableCell>
-                      <TableCell className="hidden md:table-cell">{client.Phone || "Brak danych"}</TableCell>
-                      <TableCell className="hidden md:table-cell">{client.KrajPoch || "Brak danych"}</TableCell>
+                      <TableCell className="hidden md:table-cell">{client.CelPobytu || "Brak danych"}</TableCell>
                       <TableCell className="hidden md:table-cell">{client.NumerSprawy || "Brak danych"}</TableCell>
+                      <TableCell className="hidden md:table-cell">{formatDate(client.DataZloWnio)}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -267,26 +329,48 @@ export default function ClientTable() {
             </Table>
           )}
         </CardContent>
+
       </Card>
 
       <div className="flex items-center justify-between">
         <div className="text-sm text-muted-foreground">
           Wyświetlanie <strong>{filteredClients.length}</strong> z <strong>{clients.length}</strong> klientów
         </div>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" size="icon" disabled>
-            <ChevronLeft size={16} />
-          </Button>
-          <Button variant="outline" size="sm" className="h-8 w-8">
-            1
-          </Button>
-          <Button variant="outline" size="sm" className="h-8 w-8">
-            2
-          </Button>
-          <Button variant="outline" size="icon">
-            <ChevronRight size={16} />
-          </Button>
-        </div>
+          <Select value={String(itemsPerPage)} onValueChange={(value) => {
+              setItemsPerPage(Number(value))
+              setCurrentPage(1) // reset do pierwszej strony po zmianie
+            }}>
+          <SelectTrigger className="w-35">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="5">5 na stronę</SelectItem>
+            <SelectItem value="10">10 na stronę</SelectItem>
+            <SelectItem value="20">20 na stronę</SelectItem>
+            <SelectItem value="50">50 na stronę</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button
+          variant="outline"
+          size="icon"
+          disabled={currentPage === 1}
+          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+        >
+          <ChevronLeft size={16} />
+        </Button>
+
+        <span className="text-sm px-2">
+          Strona {currentPage} z {totalPages}
+        </span>
+
+        <Button
+          variant="outline"
+          size="icon"
+          disabled={currentPage === totalPages}
+          onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+        >
+          <ChevronRight size={16} />
+        </Button>
       </div>
     </div>
   )
