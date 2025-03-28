@@ -11,18 +11,34 @@ import {
   Line,
   Bar,
   ComposedChart,
+  BarChart,
   ResponsiveContainer,
 } from "recharts"
 
 interface ChartProps {
   children: React.ReactNode
+  data?: any[]
+  type?: 'bar' | 'composed'
 }
 
-export function Chart({ children }: ChartProps) {
+export function Chart({ children, data = [], type = 'composed' }: ChartProps) {
+  // Zapewnienie, że dane są tablicą - nawet jeśli są puste
+  const safeData = Array.isArray(data) ? data : []
+  
   return (
-    <ResponsiveContainer width="100%" height="100%">
-      <ComposedChart data={[]}>{children}</ComposedChart>
-    </ResponsiveContainer>
+    <div className="w-full h-full" style={{ minHeight: "300px" }}>
+      <ResponsiveContainer width="100%" height="100%" minHeight={300}>
+        {type === 'bar' ? (
+          <BarChart data={safeData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+            {children}
+          </BarChart>
+        ) : (
+          <ComposedChart data={safeData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+            {children}
+          </ComposedChart>
+        )}
+      </ResponsiveContainer>
+    </div>
   )
 }
 
@@ -64,7 +80,11 @@ interface ChartLegendProps {
 }
 
 export function ChartLegend({ children }: ChartLegendProps) {
-  return <Legend content={children} />
+  const renderLegendContent = () => {
+    return <div className="flex items-center justify-center gap-4 text-sm mt-2">{children}</div>
+  }
+  
+  return <Legend content={renderLegendContent} />
 }
 
 interface ChartLegendItemProps {

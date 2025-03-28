@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Users, CreditCard, DollarSign, Activity, BarChart, LineChart } from "lucide-react"
+import { Users, CreditCard, DollarSign, Activity, BarChart, LineChart, Globe } from "lucide-react"
 import {
   Chart,
   ChartContainer,
@@ -45,6 +45,9 @@ const clientData = [
 export default function Dashboard() {
   const [clients, setClients] = useState<Client[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [topCountries, setTopCountries] = useState<{ country: string; count: number }[]>([])
+  const [recentClients, setRecentClients] = useState<Client[]>([])
+  const [forceUpdate, setForceUpdate] = useState(0)
 
   // Pobieranie klientów z Supabase
   useEffect(() => {
@@ -52,7 +55,39 @@ export default function Dashboard() {
       setIsLoading(true)
       try {
         const data = await getClients()
+        console.log("Pobrani klienci:", data.length, "rekordów")
         setClients(data)
+        
+        // Obliczanie liczby klientów z poszczególnych krajów
+        const countriesMap = new Map<string, number>()
+        
+        data.forEach(client => {
+          if (client.KrajPoch) {
+            const country = client.KrajPoch
+            countriesMap.set(country, (countriesMap.get(country) || 0) + 1)
+          }
+        })
+        
+        console.log("Mapa krajów:", Object.fromEntries(countriesMap))
+        
+        // Sortowanie krajów według liczby klientów i wybieranie 6 najpopularniejszych
+        const sortedCountries = Array.from(countriesMap.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 6)
+          .map(([country, count]) => ({ country, count }))
+        
+        console.log("Posortowane kraje (top 6):", sortedCountries)
+        setTopCountries(sortedCountries)
+        
+        // Pobieranie ostatnio dodanych klientów (sortowanie po CreatedDate)
+        const sortedClients = [...data].sort((a, b) => {
+          const dateA = a.CreatedDate ? new Date(a.CreatedDate).getTime() : 0
+          const dateB = b.CreatedDate ? new Date(b.CreatedDate).getTime() : 0
+          return dateB - dateA // Sortowanie od najnowszych do najstarszych
+        }).slice(0, 5) // Pobierz 5 najnowszych klientów
+        
+        console.log("Ostatnio dodani klienci:", sortedClients)
+        setRecentClients(sortedClients)
       } catch (error) {
         console.error("Błąd podczas pobierania klientów:", error)
         toast({
@@ -68,6 +103,24 @@ export default function Dashboard() {
     fetchClients()
   }, [])
 
+  // Wymuszenie aktualizacji wykresu po załadowaniu danych
+  useEffect(() => {
+    if (!isLoading && topCountries.length > 0) {
+      // Hack, który wymusza ponowne renderowanie wykresów
+      const timer = setTimeout(() => {
+        setForceUpdate(prev => prev + 1);
+        window.dispatchEvent(new Event('resize'));
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, topCountries]);
+
+  // Monitorowanie stanu topCountries
+  useEffect(() => {
+    console.log("Stan topCountries został zaktualizowany:", topCountries)
+  }, [topCountries])
+  
   // Liczba aktywnych klientów (status !== "zakończony")
   const activeClientsCount = clients.filter(client => 
     client.Status?.toLowerCase() !== "zakończony" && 
@@ -139,27 +192,44 @@ export default function Dashboard() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
             <Card className="col-span-4">
               <CardHeader>
-                <CardTitle>Przegląd przychodów</CardTitle>
-                <CardDescription>Miesięczne przychody w bieżącym roku</CardDescription>
+                <CardTitle>Kraje pochodzenia klientów</CardTitle>
+                <CardDescription>Top 6 krajów według liczby klientów</CardDescription>
               </CardHeader>
               <CardContent className="h-80">
-                <Chart>
-                  <ChartContainer>
-                    <ChartTooltip>
-                      <ChartTooltipContent />
-                    </ChartTooltip>
-                    <ChartGrid />
-                    <ChartXAxis dataKey="month" />
-                    <ChartYAxis />
-                    <ChartArea
-                      dataKey="revenue"
-                      fill="hsl(var(--primary) / 0.2)"
-                      stroke="hsl(var(--primary))"
-                      data={revenueData as any}
-                    />
-                    <ChartLine dataKey="revenue" stroke="hsl(var(--primary))" data={revenueData as any} />
-                  </ChartContainer>
-                </Chart>
+                {isLoading ? (
+                  <div className="h-full flex items-center justify-center">
+                    <p>Ładowanie danych...</p>
+                  </div>
+                ) : topCountries.length > 0 ? (
+                  <div className="h-full w-full">
+                    <Chart data={topCountries} type="bar">
+                      <ChartContainer>
+                        <ChartTooltip>
+                          <ChartTooltipContent />
+                        </ChartTooltip>
+                        <ChartGrid />
+                        <ChartXAxis dataKey="country" />
+                        <ChartYAxis />
+                        <ChartBar 
+                          dataKey="count" 
+                          fill="hsl(var(--primary))" 
+                          name="Liczba klientów"
+                        />
+                      </ChartContainer>
+                    </Chart>
+                  </div>
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center gap-2">
+                    <Globe className="h-12 w-12 text-muted-foreground" />
+                    <p className="text-muted-foreground">Brak danych o krajach pochodzenia</p>
+                    <button 
+                      onClick={() => console.log("Debugowanie danych:", { topCountries, isLoading })}
+                      className="text-xs text-primary underline mt-2"
+                    >
+                      Debuguj dane
+                    </button>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -169,22 +239,24 @@ export default function Dashboard() {
                 <CardDescription>Aktywni vs nowi klienci</CardDescription>
               </CardHeader>
               <CardContent className="h-80">
-                <Chart>
-                  <ChartContainer>
-                    <ChartTooltip>
-                      <ChartTooltipContent />
-                    </ChartTooltip>
-                    <ChartGrid />
-                    <ChartXAxis dataKey="month" />
-                    <ChartYAxis />
-                    <ChartBar dataKey="active" fill="hsl(var(--primary))" data={clientData as any} />
-                    <ChartBar dataKey="new" fill="hsl(var(--primary) / 0.5)" data={clientData as any} />
-                    <ChartLegend>
-                      <ChartLegendItem name="Aktywni klienci" color="hsl(var(--primary))" />
-                      <ChartLegendItem name="Nowi klienci" color="hsl(var(--primary) / 0.5)" />
-                    </ChartLegend>
-                  </ChartContainer>
-                </Chart>
+                <div className="h-full w-full">
+                  <Chart data={clientData} type="bar">
+                    <ChartContainer>
+                      <ChartTooltip>
+                        <ChartTooltipContent />
+                      </ChartTooltip>
+                      <ChartGrid />
+                      <ChartXAxis dataKey="month" />
+                      <ChartYAxis />
+                      <ChartBar dataKey="active" fill="hsl(var(--primary))" name="Aktywni klienci" />
+                      <ChartBar dataKey="new" fill="hsl(var(--primary) / 0.5)" name="Nowi klienci" />
+                      <ChartLegend>
+                        <ChartLegendItem name="Aktywni klienci" color="hsl(var(--primary))" />
+                        <ChartLegendItem name="Nowi klienci" color="hsl(var(--primary) / 0.5)" />
+                      </ChartLegend>
+                    </ChartContainer>
+                  </Chart>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -193,21 +265,51 @@ export default function Dashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>Ostatnie aktywności</CardTitle>
-                <CardDescription>Najnowsze działania w twoim koncie</CardDescription>
+                <CardDescription>Najnowsze działania w systemie</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="flex items-center gap-4">
-                      <div className="w-2 h-2 rounded-full bg-primary"></div>
-                      <div className="flex-1 space-y-1">
-                        <p className="text-sm font-medium leading-none">Nowy klient dodany</p>
-                        <p className="text-sm text-muted-foreground">Klient #{i} został pomyślnie dodany</p>
-                      </div>
-                      <div className="text-xs text-muted-foreground">{i}h temu</div>
-                    </div>
-                  ))}
-                </div>
+                {isLoading ? (
+                  <div className="py-8 flex items-center justify-center">
+                    <p>Ładowanie danych...</p>
+                  </div>
+                ) : recentClients.length > 0 ? (
+                  <div className="space-y-4">
+                    {recentClients.map((client) => {
+                      // Obliczenie, ile czasu minęło od dodania klienta
+                      const createdDate = client.CreatedDate 
+                        ? new Date(client.CreatedDate) 
+                        : null;
+                      
+                      let timeAgo = "niedawno";
+                      if (createdDate) {
+                        const now = new Date();
+                        const diffInHours = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60));
+                        
+                        if (diffInHours < 24) {
+                          timeAgo = diffInHours === 1 ? "1h temu" : `Dziś`;
+                        } else {
+                          const diffInDays = Math.floor(diffInHours / 24);
+                          timeAgo = diffInDays === 1 ? "1 dzień temu" : `${diffInDays} dni temu`;
+                        }
+                      }
+                      
+                      return (
+                        <div key={client.id} className="flex items-center gap-4">
+                          <div className="w-2 h-2 rounded-full bg-primary"></div>
+                          <div className="flex-1 space-y-1">
+                            <p className="text-sm font-medium leading-none">Nowy klient dodany</p>
+                            <p className="text-sm text-muted-foreground">{client.Name} został pomyślnie dodany</p>
+                          </div>
+                          <div className="text-xs text-muted-foreground">{timeAgo}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="py-8 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                    <p>Brak ostatnich aktywności</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
