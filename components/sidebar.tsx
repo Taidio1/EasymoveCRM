@@ -87,22 +87,23 @@ export default function Sidebar() {
 
   return (
     <div
-      className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-card border-r shadow-sm transition-all duration-300 ${
-        isOpen ? "w-64" : "w-16"
-      }`}
-    >
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-card border-r shadow-sm 
+        transition-all duration-300
+        ${isOpen ? "w-64" : "w-16"}
+        md:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"} md:relative`}
+      >
       <div className="flex items-center justify-between h-16 px-4 border-b">
         <Link href="/" className="flex items-center">
           {isOpen ? (
-            <h1 className="text-xl font-bold">Business Pro</h1>
+            <h1 className="text-xl font-bold">EasyMove</h1>
           ) : (
             <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold">B</span>
+              <span className="text-primary-foreground font-bold">EM</span>
             </div>
           )}
         </Link>
-        <Button variant="ghost" size="icon" onClick={toggle} className="md:flex hidden">
-          {isOpen ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
+        <Button variant="ghost" size="icon" onClick={toggle} className="md:flex">
+          {isOpen ? <ChevronLeft size={22} /> : <ChevronRight size={22} />}
         </Button>
       </div>
 
