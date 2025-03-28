@@ -5,28 +5,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: https://yklzzuoniimpqjqqymlu.supabase.co
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlrbHp6dW9uaWltcHFqcXF5bWx1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMwNzgxNDksImV4cCI6MjA1ODY1NDE0OX0.kShXk8AgMUNF1eZpDxK9FiqUJK1KNRTM-Tr-jZTNIc4
     ports:
-      - "3000:3000"
-      - "[2a01:4f9:6a:5165::154]:3000:3000"
-    environment:
-      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
-      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-      - NEXT_TELEMETRY_DISABLED=1
+      - "80:80"
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    networks:
-      app_network:
-        ipv6_address: 2001:db8:1::10
-
-networks:
-  app_network:
-    driver: bridge
-    enable_ipv6: true
-    ipam:
-      config:
-        - subnet: 2001:db8:1::/64
-          gateway: 2001:db8:1::1 
