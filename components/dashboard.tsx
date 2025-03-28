@@ -21,27 +21,6 @@ import {
 import { getClients, type Client } from "@/lib/superbase"
 import { toast } from "@/hooks/use-toast"
 
-// Sample data for charts
-const revenueData = [
-  { month: "Jan", revenue: 2400 },
-  { month: "Feb", revenue: 1398 },
-  { month: "Mar", revenue: 9800 },
-  { month: "Apr", revenue: 3908 },
-  { month: "May", revenue: 4800 },
-  { month: "Jun", revenue: 3800 },
-  { month: "Jul", revenue: 4300 },
-]
-
-const clientData = [
-  { month: "Jan", active: 40, new: 24 },
-  { month: "Feb", active: 30, new: 13 },
-  { month: "Mar", active: 45, new: 20 },
-  { month: "Apr", active: 50, new: 22 },
-  { month: "May", active: 65, new: 28 },
-  { month: "Jun", active: 75, new: 32 },
-  { month: "Jul", active: 85, new: 45 },
-]
-
 export default function Dashboard() {
   const [clients, setClients] = useState<Client[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -240,7 +219,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent className="h-80">
                 <div className="h-full w-full">
-                  <Chart data={clientData} type="bar">
+                  <Chart type="bar">
                     <ChartContainer>
                       <ChartTooltip>
                         <ChartTooltipContent />

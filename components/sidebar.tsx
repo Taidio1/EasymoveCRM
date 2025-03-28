@@ -151,7 +151,7 @@ export default function Sidebar() {
       </ScrollArea>
 
       <div className="p-3 border-t">
-        <Button variant="ghost" className={`w-full justify-start ${!isOpen && "justify-center"}`}>
+        <Button variant="ghost"  className={`w-full justify-start ${!isOpen && "justify-center"}`}>
           <LogOut size={18} className="mr-2" />
           {isOpen && <span>Logout</span>}
         </Button>
