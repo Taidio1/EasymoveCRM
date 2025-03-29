@@ -19,6 +19,9 @@ import {
   HelpCircle,
   LogOut,
 } from "lucide-react"
+import { useAuth } from "@/hooks/use-auth"
+import { cn } from "@/lib/utils"
+import { SupportTicketModal } from "@/components/support-ticket-modal"
 
 interface NavItem {
   title: string
@@ -60,11 +63,6 @@ const navSections: NavSection[] = [
         href: "/settings",
         icon: Settings,
       },
-      {
-        title: "Support",
-        href: "/support",
-        icon: HelpCircle,
-      },
     ],
   },
 ]
@@ -77,12 +75,17 @@ export default function Sidebar() {
     Management: true,
     System: true,
   })
+  const { logout } = useAuth()
 
   const toggleSection = (section: string) => {
     setExpandedSections((prev) => ({
       ...prev,
       [section]: !prev[section],
     }))
+  }
+
+  const handleLogout = async () => {
+    await logout()
   }
 
   return (
@@ -132,13 +135,12 @@ export default function Sidebar() {
                       <Link
                         key={item.href}
                         href={item.href}
-                        className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
-                          isActive
-                            ? "bg-primary text-primary-foreground"
-                            : "hover:bg-accent hover:text-accent-foreground"
-                        }`}
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:bg-muted",
+                          isActive ? "bg-muted font-medium" : "text-muted-foreground"
+                        )}
                       >
-                        <item.icon size={isOpen ? 18 : 20} />
+                        <item.icon className="h-4 w-4" />
                         {isOpen && <span>{item.title}</span>}
                       </Link>
                     )
@@ -150,8 +152,9 @@ export default function Sidebar() {
         </nav>
       </ScrollArea>
 
-      <div className="p-3 border-t">
-        <Button variant="ghost"  className={`w-full justify-start ${!isOpen && "justify-center"}`}>
+      <div className="p-3 border-t space-y-2">
+        <SupportTicketModal />
+        <Button variant="ghost" className={`w-full justify-start ${!isOpen && "justify-center"}`} onClick={handleLogout}>
           <LogOut size={18} className="mr-2" />
           {isOpen && <span>Logout</span>}
         </Button>

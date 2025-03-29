@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -15,6 +15,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useTheme } from "next-themes"
 import { Check, Save } from "lucide-react"
+import { getUserProfile } from "@/lib/superbase"
 
 // Form schema for profile settings
 const profileFormSchema = z.object({
@@ -23,9 +24,6 @@ const profileFormSchema = z.object({
   }),
   email: z.string().email({
     message: "Please enter a valid email address.",
-  }),
-  bio: z.string().max(160, {
-    message: "Bio must not be longer than 160 characters.",
   }),
 })
 
@@ -50,16 +48,31 @@ const appearanceFormSchema = z.object({
 export default function Settings() {
   const { setTheme } = useTheme()
   const [isSaved, setIsSaved] = useState(false)
+  const [userProfile, setUserProfile] = useState<{ first_name: string | null, last_name: string | null, email: string } | null>(null)
 
   // Profile form
   const profileForm = useForm<z.infer<typeof profileFormSchema>>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      name: "John Doe",
-      email: "john.doe@example.com",
-      bio: "Product Manager at Acme Inc. Passionate about building great products.",
+      name: "",
+      email: "",
     },
   })
+
+  // Fetch user profile data
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const profile = await getUserProfile()
+      if (profile) {
+        setUserProfile(profile)
+        profileForm.reset({
+          name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Nie podano',
+          email: profile.email || 'Nie podano',
+        })
+      }
+    }
+    fetchProfile()
+  }, [profileForm])
 
   // Notification form
   const notificationForm = useForm<z.infer<typeof notificationFormSchema>>({
@@ -124,10 +137,10 @@ export default function Settings() {
           <Card>
             <CardHeader>
               <CardTitle>Profile Settings</CardTitle>
-              <CardDescription>Manage your public profile information</CardDescription>
+              <CardDescription>Your profile information</CardDescription>
             </CardHeader>
             <Form {...profileForm}>
-              <form onSubmit={profileForm.handleSubmit(onProfileSubmit)}>
+              <form>
                 <CardContent className="space-y-4">
                   <FormField
                     control={profileForm.control}
@@ -136,9 +149,9 @@ export default function Settings() {
                       <FormItem>
                         <FormLabel>Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="Your name" {...field} />
+                          <Input {...field} disabled />
                         </FormControl>
-                        <FormDescription>This is your public display name.</FormDescription>
+                        <FormDescription>Your display name</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -151,44 +164,14 @@ export default function Settings() {
                       <FormItem>
                         <FormLabel>Email</FormLabel>
                         <FormControl>
-                          <Input placeholder="Your email" {...field} />
+                          <Input {...field} disabled />
                         </FormControl>
-                        <FormDescription>This email will be used for notifications.</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={profileForm.control}
-                    name="bio"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Bio</FormLabel>
-                        <FormControl>
-                          <Textarea placeholder="Tell us a little about yourself" className="resize-none" {...field} />
-                        </FormControl>
-                        <FormDescription>Brief description for your profile. Max 160 characters.</FormDescription>
+                        <FormDescription>Your email address</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </CardContent>
-                <CardFooter>
-                  <Button type="submit">
-                    {isSaved ? (
-                      <>
-                        <Check className="mr-2 h-4 w-4" />
-                        Saved
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
-                        Save Changes
-                      </>
-                    )}
-                  </Button>
-                </CardFooter>
               </form>
             </Form>
           </Card>
@@ -252,21 +235,7 @@ export default function Settings() {
                     )}
                   />
 
-                  <FormField
-                    control={notificationForm.control}
-                    name="marketingEmails"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base">Marketing Emails</FormLabel>
-                          <FormDescription>Receive emails about new features and updates</FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch checked={field.value} onCheckedChange={field.onChange} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+      
                 </CardContent>
                 <CardFooter>
                   <Button type="submit">

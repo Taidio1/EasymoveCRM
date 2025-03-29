@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ChevronLeft, ChevronRight, MoreHorizontal, Plus, Search, SlidersHorizontal, Loader2 } from "lucide-react"
+import { ChevronLeft, ChevronRight, MoreHorizontal, Plus, Search, RefreshCw, Loader2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CreateClientModal } from "./create-client-modal"
@@ -224,7 +224,7 @@ export default function ClientTable() {
           </Select>
 
           <Button variant="outline" size="icon" onClick={refreshClients}>
-            <SlidersHorizontal size={16} />
+            <RefreshCw size={16}  />
           </Button>
         </div>
 

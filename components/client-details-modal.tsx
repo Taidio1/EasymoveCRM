@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -35,9 +35,11 @@ import {
   FileCheck,
   Clock,
   AlertCircle,
+  Plus,
+  Loader2,
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
-import { type Client, updateClient } from "@/lib/superbase"
+import { type Client, supabase, updateClient, uploadClientDocument } from "@/lib/superbase"
 import { Checkbox } from "@/components/ui/checkbox"
 
 // Schemat formularza klienta
@@ -67,6 +69,11 @@ const clientFormSchema = z.object({
   NumerSprawy: z.string().optional(),
   Inspektor: z.string().optional(),
   Firma: z.string().optional(),
+  DataZloWnio: z.string().optional(),
+  DataWydWni: z.string().optional(),
+  DataOdbKartyPob: z.string().optional(),
+  DataOdbDecyzji: z.string().optional(),
+  DataZakLegPob: z.string().optional(),
   FormWni: z.boolean().default(false),
   ZalNrJed: z.boolean().default(false),
   KopiaPasz: z.boolean().default(false),
@@ -87,6 +94,8 @@ interface ClientDetailsModalProps {
 export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated }: ClientDetailsModalProps) {
   const [isEditMode, setIsEditMode] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Inicjalizacja formularza z danymi klienta
   const form = useForm<ClientFormValues>({
@@ -108,6 +117,11 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
       NumerSprawy: "",
       Inspektor: "",
       Firma: "",
+      DataZloWnio: "",
+      DataWydWni: "",
+      DataOdbKartyPob: "",
+      DataOdbDecyzji: "",
+      DataZakLegPob: "",
       FormWni: false,
       ZalNrJed: false,
       KopiaPasz: false,
@@ -136,6 +150,11 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
         NumerSprawy: client.NumerSprawy || "",
         Inspektor: client.Inspektor || "",
         Firma: client.Firma || "",
+        DataZloWnio: client.DataZloWnio || "",
+        DataWydWni: client.DataWydWni || "",
+        DataOdbKartyPob: client.DataOdbKartyPob || "",
+        DataOdbDecyzji: client.DataOdbDecyzji || "",
+        DataZakLegPob: client.DataZakLegPob || "",
         FormWni: isYes(client.FormWni),
         ZalNrJed: isYes(client.ZalNrJed),
         KopiaPasz: isYes(client.KopiaPasz),
@@ -264,6 +283,11 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
         NumerSprawy: client.NumerSprawy || "",
         Inspektor: client.Inspektor || "",
         Firma: client.Firma || "",
+        DataZloWnio: client.DataZloWnio || "",
+        DataWydWni: client.DataWydWni || "",
+        DataOdbKartyPob: client.DataOdbKartyPob || "",
+        DataOdbDecyzji: client.DataOdbDecyzji || "",
+        DataZakLegPob: client.DataZakLegPob || "",
         FormWni: isYes(client.FormWni),
         ZalNrJed: isYes(client.ZalNrJed),
         KopiaPasz: isYes(client.KopiaPasz),
@@ -283,6 +307,89 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
     }
     onOpenChange(open)
   }
+
+  // Dodaj funkcję do obsługi wgrywania plików
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0 || !client?.id) return;
+
+    setIsUploading(true);
+    
+    try {
+      let uploadedUrls = [];
+      
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        // Sprawdzenie rozmiaru pliku (max 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+          toast({
+            title: "Błąd",
+            description: `Plik "${file.name}" jest zbyt duży. Maksymalny rozmiar to 10MB.`,
+            variant: "destructive",
+          });
+          continue;
+        }
+        
+        // Sprawdzenie typu pliku
+        const fileType = file.type;
+        const allowedTypes = [
+          'application/pdf', 
+          'application/msword', 
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        ];
+        
+        if (!allowedTypes.includes(fileType)) {
+          toast({
+            title: "Błąd",
+            description: `Plik "${file.name}" ma nieprawidłowy format. Dozwolone formaty to PDF i Word.`,
+            variant: "destructive",
+          });
+          continue;
+        }
+        
+        // Wgraj plik i pobierz URL
+        const fileUrl = await uploadClientDocument(client.id, file);
+        
+        if (fileUrl) {
+          uploadedUrls.push(fileUrl);
+        }
+      }
+      
+      // Aktualizuj klienta, dodając nowe dokumenty do istniejącej listy
+      if (uploadedUrls.length > 0) {
+        const currentDocs = client.Doc || "";
+        const updatedDocs = currentDocs 
+          ? currentDocs + ',' + uploadedUrls.join(',') 
+          : uploadedUrls.join(',');
+        
+        // Aktualizacja klienta z nowymi URL-ami dokumentów
+        const updatedClient = await updateClient(client.id, { Doc: updatedDocs });
+        
+        // Powiadom rodzica o aktualizacji
+        if (onClientUpdated) {
+          onClientUpdated(updatedClient);
+        }
+        
+        toast({
+          title: "Sukces",
+          description: `Wgrano pomyślnie ${uploadedUrls.length} ${uploadedUrls.length === 1 ? 'dokument' : 'dokumenty'}.`,
+        });
+      }
+    } catch (error) {
+      console.error("Błąd podczas wgrywania pliku:", error);
+      toast({
+        title: "Błąd",
+        description: "Wystąpił błąd podczas wgrywania dokumentu.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+      // Zresetuj input plików
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
 
   if (!client) return null
 
@@ -503,6 +610,104 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
                                 <SelectItem value="Inne">Inne</SelectItem>
                               </SelectContent>
                             </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="NumerSprawy"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Numer sprawy</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="Inspektor"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Inspektor</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="DataZloWnio"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Data złożenia wniosku</FormLabel>
+                            <FormControl>
+                              <Input type="date" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="DataWydWni"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Data wydania wniosku</FormLabel>
+                            <FormControl>
+                              <Input type="date" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="DataOdbKartyPob"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Data odbioru karty pobytu</FormLabel>
+                            <FormControl>
+                              <Input type="date" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="DataOdbDecyzji"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Data odbioru decyzji</FormLabel>
+                            <FormControl>
+                              <Input type="date" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="DataZakLegPob"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Data zakończenia legalnego pobytu</FormLabel>
+                            <FormControl>
+                              <Input type="date" {...field} />
+                            </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -803,7 +1008,37 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
               <TabsContent value="documents" className="mt-4">
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">Dokumenty</CardTitle>
+                    <div className="flex justify-between items-center">
+                      <CardTitle className="text-lg">Dokumenty</CardTitle>
+                      <div className="flex gap-2">
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleFileUpload}
+                          className="hidden"
+                          accept=".pdf,.doc,.docx"
+                          multiple
+                        />
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={isUploading}
+                        >
+                          {isUploading ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Wgrywanie...
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="h-4 w-4 mr-2" />
+                              Dodaj dokument
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
@@ -827,7 +1062,9 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
                           </div>
                         </div>
                       ) : (
-                        <div className="text-center py-4 text-muted-foreground">Brak załączonych dokumentów</div>
+                        <div className="text-center py-4 text-muted-foreground">
+                          Brak załączonych dokumentów. Kliknij "Dodaj dokument", aby wgrać pierwszy plik.
+                        </div>
                       )}
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">

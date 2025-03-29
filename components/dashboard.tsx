@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/chart"
 import { getClients, type Client } from "@/lib/superbase"
 import { toast } from "@/hooks/use-toast"
+import { RoleGuard } from "@/components/role-guard"
 
 export default function Dashboard() {
   const [clients, setClients] = useState<Client[]>([])
@@ -27,6 +28,7 @@ export default function Dashboard() {
   const [topCountries, setTopCountries] = useState<{ country: string; count: number }[]>([])
   const [recentClients, setRecentClients] = useState<Client[]>([])
   const [forceUpdate, setForceUpdate] = useState(0)
+  const [upcomingExpirations, setUpcomingExpirations] = useState<Client[]>([])
 
   // Pobieranie klientów z Supabase
   useEffect(() => {
@@ -67,6 +69,30 @@ export default function Dashboard() {
         
         console.log("Ostatnio dodani klienci:", sortedClients)
         setRecentClients(sortedClients)
+
+        // Pobieranie klientów z najbliższymi datami zakończenia legalnego pobytu
+        const currentYear = new Date().getFullYear()
+        const clientsWithExpiration = data
+          .filter(client => {
+            if (!client.DataZakLegPob) return false
+            const expirationDate = new Date(client.DataZakLegPob)
+            return expirationDate.getFullYear() === currentYear
+          })
+          .sort((a, b) => {
+            const dateA = new Date(a.DataZakLegPob!).getTime()
+            const dateB = new Date(b.DataZakLegPob!).getTime()
+            return dateA - dateB // Sortowanie od najwcześniejszej daty
+          })
+          .slice(0, 5) // Pobierz 5 najbliższych dat
+
+        console.log("Klienci z najbliższymi datami zakończenia w roku:", currentYear, clientsWithExpiration)
+        setUpcomingExpirations(clientsWithExpiration)
+
+        // Wymuszenie przerenderowania po załadowaniu danych
+        setTimeout(() => {
+          setForceUpdate(prev => prev + 1)
+          window.dispatchEvent(new Event('resize'))
+        }, 100)
       } catch (error) {
         console.error("Błąd podczas pobierania klientów:", error)
         toast({
@@ -81,19 +107,6 @@ export default function Dashboard() {
 
     fetchClients()
   }, [])
-
-  // Wymuszenie aktualizacji wykresu po załadowaniu danych
-  useEffect(() => {
-    if (!isLoading && topCountries.length > 0) {
-      // Hack, który wymusza ponowne renderowanie wykresów
-      const timer = setTimeout(() => {
-        setForceUpdate(prev => prev + 1);
-        window.dispatchEvent(new Event('resize'));
-      }, 500);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [isLoading, topCountries]);
 
   // Monitorowanie stanu topCountries
   useEffect(() => {
@@ -169,48 +182,60 @@ export default function Dashboard() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            <Card className="col-span-4">
-              <CardHeader>
-                <CardTitle>Kraje pochodzenia klientów</CardTitle>
-                <CardDescription>Top 6 krajów według liczby klientów</CardDescription>
-              </CardHeader>
-              <CardContent className="h-80">
-                {isLoading ? (
-                  <div className="h-full flex items-center justify-center">
-                    <p>Ładowanie danych...</p>
-                  </div>
-                ) : topCountries.length > 0 ? (
-                  <div className="h-full w-full">
-                    <Chart data={topCountries} type="bar">
-                      <ChartContainer>
-                        <ChartTooltip>
-                          <ChartTooltipContent />
-                        </ChartTooltip>
-                        <ChartGrid />
-                        <ChartXAxis dataKey="country" />
-                        <ChartYAxis />
-                        <ChartBar 
-                          dataKey="count" 
-                          fill="hsl(var(--primary))" 
-                          name="Liczba klientów"
-                        />
-                      </ChartContainer>
-                    </Chart>
-                  </div>
-                ) : (
-                  <div className="h-full flex flex-col items-center justify-center gap-2">
-                    <Globe className="h-12 w-12 text-muted-foreground" />
-                    <p className="text-muted-foreground">Brak danych o krajach pochodzenia</p>
-                    <button 
-                      onClick={() => console.log("Debugowanie danych:", { topCountries, isLoading })}
-                      className="text-xs text-primary underline mt-2"
-                    >
-                      Debuguj dane
-                    </button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <RoleGuard allowedRoles={["boss", "admin"]}>
+              <Card className="col-span-4">
+                <CardHeader>
+                  <CardTitle>Kraje pochodzenia klientów</CardTitle>
+                  <CardDescription>Top 6 krajów według liczby klientów</CardDescription>
+                </CardHeader>
+                <CardContent className="h-80">
+                  {isLoading ? (
+                    <div className="h-full flex items-center justify-center">
+                      <p>Ładowanie danych...</p>
+                    </div>
+                  ) : topCountries.length > 0 ? (
+                    <div className="h-full w-full" key={forceUpdate}>
+                      <Chart 
+                        data={topCountries.map((item) => ({
+                          name: item.country,
+                          value: item.count,
+                        }))}
+                        type="bar"
+                      >
+                        <ChartContainer>
+                          <ChartTooltip>
+                            <ChartTooltipContent />
+                          </ChartTooltip>
+                          <ChartGrid />
+                          <ChartXAxis
+                            dataKey="name"
+                            angle={-45}
+                            textAnchor="end"
+                            height={60}
+                            interval={0}
+                          />
+                          <ChartYAxis />
+                          <ChartBar 
+                            dataKey="value" 
+                            fill="hsl(var(--primary))" 
+                            name="Liczba klientów"
+                            radius={[4, 4, 0, 0]}
+                          />
+                          <ChartLegend>
+                            <ChartLegendItem name="Liczba klientów" color="hsl(var(--primary))" />
+                          </ChartLegend>
+                        </ChartContainer>
+                      </Chart>
+                    </div>
+                  ) : (
+                    <div className="h-full flex flex-col items-center justify-center gap-2">
+                      <Globe className="h-12 w-12 text-muted-foreground" />
+                      <p className="text-muted-foreground">Brak danych o krajach pochodzenia</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </RoleGuard>
 
             <Card className="col-span-3">
               <CardHeader>
@@ -241,7 +266,7 @@ export default function Dashboard() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <Card>
+            <Card className="col-span-2 md:col-span-2 lg:col-span-1">
               <CardHeader>
                 <CardTitle>Ostatnie aktywności</CardTitle>
                 <CardDescription>Najnowsze działania w systemie</CardDescription>
@@ -294,27 +319,63 @@ export default function Dashboard() {
 
             <Card className="col-span-2">
               <CardHeader>
-                <CardTitle>Nadchodzące zadania</CardTitle>
-                <CardDescription>Zadania wymagające twojej uwagi</CardDescription>
+                <CardTitle>Nadchodzące Zakończenie Legalnego Pobytu</CardTitle>
+                <CardDescription>Klienci z kończącym się legalnym pobytem w {new Date().getFullYear()}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="flex items-start gap-4">
-                      <div className="mt-1 w-5 h-5 rounded-full border-2 border-primary flex items-center justify-center">
-                        <div className="w-2 h-2 rounded-full bg-primary"></div>
-                      </div>
-                      <div className="flex-1 space-y-1">
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-medium leading-none">Spotkanie z klientem #{i}</p>
-                          <div className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
-                            {i === 1 ? "Dziś" : `Za ${i} dni`}
+                  {isLoading ? (
+                    <div className="py-8 flex items-center justify-center">
+                      <p>Ładowanie danych...</p>
+                    </div>
+                  ) : upcomingExpirations.length > 0 ? (
+                    upcomingExpirations.map((client) => {
+                      const expirationDate = new Date(client.DataZakLegPob!)
+                      const today = new Date()
+                      const diffTime = expirationDate.getTime() - today.getTime()
+                      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+                      
+                      let timeLabel = ""
+                      if (diffDays < 0) {
+                        timeLabel = "Przekroczono"
+                      } else if (diffDays === 0) {
+                        timeLabel = "Dziś"
+                      } else if (diffDays === 1) {
+                        timeLabel = "Jutro"
+                      } else {
+                        timeLabel = `Za ${diffDays} dni`
+                      }
+
+                      return (
+                        <div key={client.id} className="flex items-start gap-4">
+                          <div className="mt-1 w-5 h-5 rounded-full border-2 border-primary flex items-center justify-center">
+                            <div className="w-2 h-2 rounded-full bg-primary"></div>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            <div className="flex items-center justify-between">
+                              <p className="text-sm font-medium leading-none">{client.Name}</p>
+                              <div className={`text-xs px-2 py-1 rounded-full ${
+                                diffDays < 0 
+                                  ? "bg-destructive/10 text-destructive" 
+                                  : diffDays <= 7 
+                                    ? "bg-warning/10 text-warning" 
+                                    : "bg-primary/10 text-primary"
+                              }`}>
+                                {timeLabel}
+                              </div>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              Data zakończenia: {expirationDate.toLocaleDateString()}
+                            </p>
                           </div>
                         </div>
-                        <p className="text-sm text-muted-foreground">Omówienie wymagań projektu z Klientem #{i}</p>
-                      </div>
+                      )
+                    })
+                  ) : (
+                    <div className="py-8 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                      <p>Brak nadchodzących zadań w tym roku</p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </CardContent>
             </Card>
