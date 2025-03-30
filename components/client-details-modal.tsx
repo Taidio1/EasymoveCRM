@@ -41,6 +41,7 @@ import {
 import { toast } from "@/hooks/use-toast"
 import { type Client, supabase, updateClient, uploadClientDocument } from "@/lib/superbase"
 import { Checkbox } from "@/components/ui/checkbox"
+import { useAuth } from "@/hooks/use-auth"
 
 // Schemat formularza klienta
 const clientFormSchema = z.object({
@@ -89,13 +90,45 @@ interface ClientDetailsModalProps {
   onOpenChange: (open: boolean) => void
   client: Client | null
   onClientUpdated?: (updatedClient: Client) => void
+  isEditMode?: boolean
+  onEditModeChange?: (isEditMode: boolean) => void
 }
 
-export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated }: ClientDetailsModalProps) {
-  const [isEditMode, setIsEditMode] = useState(false)
+export function ClientDetailsModal({ 
+  open, 
+  onOpenChange, 
+  client, 
+  onClientUpdated,
+  isEditMode: externalIsEditMode,
+  onEditModeChange: externalOnEditModeChange 
+}: ClientDetailsModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isEditMode, setIsEditMode] = useState(externalIsEditMode || false)
   const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const { user } = useAuth()
+
+  // Aktualizacja lokalnego stanu edycji, gdy zmienia się zewnętrzny
+  useEffect(() => {
+    if (externalIsEditMode !== undefined) {
+      setIsEditMode(externalIsEditMode)
+    }
+  }, [externalIsEditMode])
+
+  // Aktualizacja zewnętrznego stanu edycji, gdy zmienia się lokalny
+  const handleEditModeChange = (newIsEditMode: boolean) => {
+    setIsEditMode(newIsEditMode)
+    if (externalOnEditModeChange) {
+      externalOnEditModeChange(newIsEditMode)
+    }
+  }
+
+  // Resetowanie trybu edycji przy zamknięciu modalu
+  useEffect(() => {
+    if (!open) {
+      handleEditModeChange(false)
+    }
+  }, [open])
 
   // Inicjalizacja formularza z danymi klienta
   const form = useForm<ClientFormValues>({
@@ -250,7 +283,7 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
       })
 
       // Wyjście z trybu edycji
-      setIsEditMode(false)
+      handleEditModeChange(false)
     } catch (error) {
       console.error("Błąd podczas aktualizacji klienta:", error)
       toast({
@@ -261,51 +294,6 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
     } finally {
       setIsSubmitting(false)
     }
-  }
-
-  // Przełączanie trybu edycji
-  const toggleEditMode = () => {
-    if (isEditMode && client) {
-      // Jeśli anulujemy edycję, resetujemy formularz do oryginalnych wartości
-      form.reset({
-        Name: client.Name || "",
-        Status: client.Status || "",
-        CelPobytu: client.CelPobytu || "none",
-        PodLegPob: client.PodLegPob || "none",
-        KrajPoch: client.KrajPoch || "",
-        Phone: client.Phone || "",
-        StatusPla: client.StatusPla || "",
-        Email: client.Email || "",
-        Birthday: client.Birthday || "",
-        Notes: client.Notes || "",
-        Creator: client.Creator || "",
-        TotalSpend: client.TotalSpend || "",
-        NumerSprawy: client.NumerSprawy || "",
-        Inspektor: client.Inspektor || "",
-        Firma: client.Firma || "",
-        DataZloWnio: client.DataZloWnio || "",
-        DataWydWni: client.DataWydWni || "",
-        DataOdbKartyPob: client.DataOdbKartyPob || "",
-        DataOdbDecyzji: client.DataOdbDecyzji || "",
-        DataZakLegPob: client.DataZakLegPob || "",
-        FormWni: isYes(client.FormWni),
-        ZalNrJed: isYes(client.ZalNrJed),
-        KopiaPasz: isYes(client.KopiaPasz),
-        ZalBlue: isYes(client.ZalBlue),
-        CzteZdjecia: isYes(client.CzteZdjecia),
-        Pelnomocnictwo: isYes(client.Pelnomocnictwo),
-      })
-    }
-    setIsEditMode(!isEditMode)
-  }
-
-  // Obsługa zamknięcia dialogu
-  const handleDialogClose = (open: boolean) => {
-    if (!open) {
-      // Resetowanie trybu edycji przy zamykaniu
-      setIsEditMode(false)
-    }
-    onOpenChange(open)
   }
 
   // Dodaj funkcję do obsługi wgrywania plików
@@ -427,7 +415,7 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleDialogClose}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl flex items-center gap-2">
@@ -449,7 +437,7 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
               variant="outline"
               size="icon"
               className="ml-auto h-8 w-8 p-2"
-              onClick={toggleEditMode}
+              onClick={() => handleEditModeChange(!isEditMode)}
               disabled={isSubmitting}
             >
               {isEditMode ? <XCircle className="h-4 w-4" /> : <Edit className="h-4 w-4" />}
@@ -848,7 +836,7 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
                     </div>
 
                     <div className="flex justify-end gap-2 pt-2">
-                      <Button type="button" variant="outline" onClick={toggleEditMode} disabled={isSubmitting}>
+                      <Button type="button" variant="outline" onClick={() => handleEditModeChange(false)} disabled={isSubmitting}>
                         Anuluj
                       </Button>
                       <Button type="submit" disabled={isSubmitting}>

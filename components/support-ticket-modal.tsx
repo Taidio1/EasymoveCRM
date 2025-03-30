@@ -35,12 +35,15 @@ import { HelpCircle } from "lucide-react"
 
 const ticketFormSchema = z.object({
   title: z.string().min(2, {
+    // Poprawiono: TytuÄ¹â€š -> Tytuł, mieÃ„â€¡ -> mieć
     message: "Tytuł musi mieć minimum 2 znaki.",
   }),
   topic: z.string({
+    // Poprawiono: ProszÃ„â„¢ -> Proszę, wybraÃ„â€¡ -> wybrać
     required_error: "Proszę wybrać temat.",
   }),
   message: z.string().min(10, {
+    // Poprawiono: WiadomoÄ¹â€ºÃ„â€¡ -> Wiadomość, mieÃ„â€¡ -> mieć, znakÄ‚Å‚w -> znaków
     message: "Wiadomość musi mieć minimum 10 znaków.",
   }),
 })
@@ -73,13 +76,16 @@ export function SupportTicketModal() {
       })
 
       if (!response.ok) {
+        // Poprawiono: BÄ¹â€šÃ„â€¦d -> Błąd, wysyÄ¹â€šania -> wysyłania
         throw new Error("Błąd podczas wysyłania ticketu")
       }
       
+      // Poprawiono: zostaÄ¹â€š -> został, wysÄ¹â€šany -> wysłany, pomyÄ¹â€ºlnie -> pomyślnie
       toast.success("Ticket został wysłany pomyślnie!")
       setOpen(false)
       form.reset()
     } catch (error) {
+      // Poprawiono: WystÃ„â€¦piÄ¹â€š -> Wystąpił, bÄ¹â€šÃ„â€¦d -> błąd, wysyÄ¹â€šania -> wysyłania
       toast.error("Wystąpił błąd podczas wysyłania ticketu.")
     } finally {
       setIsSubmitting(false)
@@ -96,8 +102,10 @@ export function SupportTicketModal() {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
+          {/* Poprawiono: WysyÄ¹â€šanie -> Wysyłanie */}
           <DialogTitle>Wysyłanie ticketu</DialogTitle>
           <DialogDescription>
+            {/* Poprawiono: swÄ‚Å‚j -> swój, sugestiÃ„â„¢ -> sugestię, siÃ„â„¢ -> się, odpowiedzieÃ„â€¡ -> odpowiedzieć */}
             Opisz swój problem lub sugestię. Postaramy się odpowiedzieć jak najszybciej.
           </DialogDescription>
         </DialogHeader>
@@ -108,8 +116,10 @@ export function SupportTicketModal() {
               name="title"
               render={({ field }) => (
                 <FormItem>
+                  {/* Poprawiono: TytuÄ¹â€š -> Tytuł */}
                   <FormLabel>Tytuł</FormLabel>
                   <FormControl>
+                    {/* Poprawiono: KrÄ‚Å‚tki -> Krótki */}
                     <Input placeholder="Krótki opis problemu" {...field} />
                   </FormControl>
                   <FormMessage />
@@ -143,9 +153,11 @@ export function SupportTicketModal() {
               name="message"
               render={({ field }) => (
                 <FormItem>
+                  {/* Poprawiono: WiadomoÄ¹â€ºÃ„â€¡ -> Wiadomość */}
                   <FormLabel>Wiadomość</FormLabel>
                   <FormControl>
                     <Textarea
+                      // Poprawiono: szczegÄ‚Å‚Ä¹â€šowo -> szczegółowo, swÄ‚Å‚j -> swój, sugestiÃ„â„¢ -> sugestię
                       placeholder="Opisz szczegółowo swój problem lub sugestię..."
                       className="min-h-[100px]"
                       {...field}
@@ -156,6 +168,7 @@ export function SupportTicketModal() {
               )}
             />
             <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {/* Poprawiono: WysyÄ¹â€šanie -> Wysyłanie, WyÄ¹â€ºlij -> Wyślij */}
               {isSubmitting ? "Wysyłanie..." : "Wyślij ticket"}
             </Button>
           </form>
@@ -163,4 +176,4 @@ export function SupportTicketModal() {
       </DialogContent>
     </Dialog>
   )
-} 
+}

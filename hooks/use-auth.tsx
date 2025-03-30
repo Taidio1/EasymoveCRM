@@ -23,7 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Sprawdzenie czy użytkownik jest zalogowany przy pierwszym renderowaniu
   useEffect(() => {
     const checkUser = async () => {
-      try {
+      try { 
         // Pobieramy profil użytkownika zamiast podstawowych danych
         const userProfile = await getUserProfile()
         setUser(userProfile)

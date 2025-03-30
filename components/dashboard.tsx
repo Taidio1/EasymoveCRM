@@ -38,35 +38,35 @@ export default function Dashboard() {
         const data = await getClients()
         console.log("Pobrani klienci:", data.length, "rekordów")
         setClients(data)
-        
+
         // Obliczanie liczby klientów z poszczególnych krajów
         const countriesMap = new Map<string, number>()
-        
+
         data.forEach(client => {
           if (client.KrajPoch) {
             const country = client.KrajPoch
             countriesMap.set(country, (countriesMap.get(country) || 0) + 1)
           }
         })
-        
+
         console.log("Mapa krajów:", Object.fromEntries(countriesMap))
-        
+
         // Sortowanie krajów według liczby klientów i wybieranie 6 najpopularniejszych
         const sortedCountries = Array.from(countriesMap.entries())
           .sort((a, b) => b[1] - a[1])
           .slice(0, 6)
           .map(([country, count]) => ({ country, count }))
-        
+
         console.log("Posortowane kraje (top 6):", sortedCountries)
         setTopCountries(sortedCountries)
-        
+
         // Pobieranie ostatnio dodanych klientów (sortowanie po CreatedDate)
         const sortedClients = [...data].sort((a, b) => {
           const dateA = a.CreatedDate ? new Date(a.CreatedDate).getTime() : 0
           const dateB = b.CreatedDate ? new Date(b.CreatedDate).getTime() : 0
           return dateB - dateA // Sortowanie od najnowszych do najstarszych
         }).slice(0, 5) // Pobierz 5 najnowszych klientów
-        
+
         console.log("Ostatnio dodani klienci:", sortedClients)
         setRecentClients(sortedClients)
 
@@ -112,10 +112,10 @@ export default function Dashboard() {
   useEffect(() => {
     console.log("Stan topCountries został zaktualizowany:", topCountries)
   }, [topCountries])
-  
+
   // Liczba aktywnych klientów (status !== "zakończony")
-  const activeClientsCount = clients.filter(client => 
-    client.Status?.toLowerCase() !== "zakończony" && 
+  const activeClientsCount = clients.filter(client =>
+    client.Status?.toLowerCase() !== "zakończony" &&
     client.Status?.toLowerCase() !== "nieaktywny"
   ).length
 
@@ -195,7 +195,7 @@ export default function Dashboard() {
                     </div>
                   ) : topCountries.length > 0 ? (
                     <div className="h-full w-full" key={forceUpdate}>
-                      <Chart 
+                      <Chart
                         data={topCountries.map((item) => ({
                           name: item.country,
                           value: item.count,
@@ -215,9 +215,9 @@ export default function Dashboard() {
                             interval={0}
                           />
                           <ChartYAxis />
-                          <ChartBar 
-                            dataKey="value" 
-                            fill="hsl(var(--primary))" 
+                          <ChartBar
+                            dataKey="value"
+                            fill="hsl(var(--primary))"
                             name="Liczba klientów"
                             radius={[4, 4, 0, 0]}
                           />
@@ -280,15 +280,15 @@ export default function Dashboard() {
                   <div className="space-y-4">
                     {recentClients.map((client) => {
                       // Obliczenie, ile czasu minęło od dodania klienta
-                      const createdDate = client.CreatedDate 
-                        ? new Date(client.CreatedDate) 
+                      const createdDate = client.CreatedDate
+                        ? new Date(client.CreatedDate)
                         : null;
-                      
+
                       let timeAgo = "niedawno";
                       if (createdDate) {
                         const now = new Date();
                         const diffInHours = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60));
-                        
+
                         if (diffInHours < 24) {
                           timeAgo = diffInHours === 1 ? "1h temu" : `Dziś`;
                         } else {
@@ -296,7 +296,7 @@ export default function Dashboard() {
                           timeAgo = diffInDays === 1 ? "1 dzień temu" : `${diffInDays} dni temu`;
                         }
                       }
-                      
+
                       return (
                         <div key={client.id} className="flex items-center gap-4">
                           <div className="w-2 h-2 rounded-full bg-primary"></div>
@@ -334,7 +334,7 @@ export default function Dashboard() {
                       const today = new Date()
                       const diffTime = expirationDate.getTime() - today.getTime()
                       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-                      
+
                       let timeLabel = ""
                       if (diffDays < 0) {
                         timeLabel = "Przekroczono"
@@ -355,10 +355,10 @@ export default function Dashboard() {
                             <div className="flex items-center justify-between">
                               <p className="text-sm font-medium leading-none">{client.Name}</p>
                               <div className={`text-xs px-2 py-1 rounded-full ${
-                                diffDays < 0 
-                                  ? "bg-destructive/10 text-destructive" 
-                                  : diffDays <= 7 
-                                    ? "bg-warning/10 text-warning" 
+                                diffDays < 0
+                                  ? "bg-destructive/10 text-destructive"
+                                  : diffDays <= 7
+                                    ? "bg-warning/10 text-warning"
                                     : "bg-primary/10 text-primary"
                               }`}>
                                 {timeLabel}
@@ -419,4 +419,3 @@ export default function Dashboard() {
     </div>
   )
 }
-

@@ -1,40 +1,21 @@
-import type React from "react"
-import { ThemeProvider } from "@/components/theme-provider"
-import { SidebarProvider } from "@/components/sidebar-provider"
-import { AuthProvider } from "@/hooks/use-auth"
-import { AuthGuard } from "@/components/auth-guard"
-import { Inter } from "next/font/google"
-import "./globals.css"
-import type { Metadata } from "next"
+import { Inter } from 'next/font/google'
+import './globals.css'
+import type { Metadata } from 'next'
+import { AppProviders } from './AppProviders'
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ subsets: ['latin-ext'] })
 
 export const metadata: Metadata = {
-  title: "Easy Move CRM",
-  description: "Easy move management system",
-    generator: 'v0.dev'
+  title: 'Easy Move CRM',
+  description: 'Easy move management system',
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pl" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <AuthProvider>
-            <AuthGuard>
-              <SidebarProvider>{children}</SidebarProvider>
-            </AuthGuard>
-          </AuthProvider>
-        </ThemeProvider>
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   )
 }
-
-
-
-import './globals.css'
