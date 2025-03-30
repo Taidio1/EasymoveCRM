@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -35,15 +35,17 @@ import {
   FileCheck,
   Clock,
   AlertCircle,
+  Plus,
+  Loader2,
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
-import { type Client, updateClient } from "@/lib/superbase"
+import { type Client, supabase, updateClient, uploadClientDocument } from "@/lib/superbase"
 import { Checkbox } from "@/components/ui/checkbox"
 
 // Schemat formularza klienta
 const clientFormSchema = z.object({
   Name: z.string().min(2, {
-    message: "Imię i nazwisko musi mieć co najmniej 2 znaki.",
+    message: "Imiê i nazwisko musi mieæ co najmniej 2 znaki.",
   }),
   Status: z.string().min(1, {
     message: "Status jest wymagany.",
@@ -57,7 +59,7 @@ const clientFormSchema = z.object({
   Email: z
     .string()
     .email({
-      message: "Wprowadź prawidłowy adres email.",
+      message: "Wprowad prawid³owy adres email.",
     })
     .optional(),
   Birthday: z.string().optional(),
@@ -67,6 +69,11 @@ const clientFormSchema = z.object({
   NumerSprawy: z.string().optional(),
   Inspektor: z.string().optional(),
   Firma: z.string().optional(),
+  DataZloWnio: z.string().optional(),
+  DataWydWni: z.string().optional(),
+  DataOdbKartyPob: z.string().optional(),
+  DataOdbDecyzji: z.string().optional(),
+  DataZakLegPob: z.string().optional(),
   FormWni: z.boolean().default(false),
   ZalNrJed: z.boolean().default(false),
   KopiaPasz: z.boolean().default(false),
@@ -87,6 +94,8 @@ interface ClientDetailsModalProps {
 export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated }: ClientDetailsModalProps) {
   const [isEditMode, setIsEditMode] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Inicjalizacja formularza z danymi klienta
   const form = useForm<ClientFormValues>({
@@ -108,6 +117,11 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
       NumerSprawy: "",
       Inspektor: "",
       Firma: "",
+      DataZloWnio: "",
+      DataWydWni: "",
+      DataOdbKartyPob: "",
+      DataOdbDecyzji: "",
+      DataZakLegPob: "",
       FormWni: false,
       ZalNrJed: false,
       KopiaPasz: false,
@@ -117,7 +131,7 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
     },
   })
 
-  // Aktualizacja wartości formularza, gdy zmienia się klient
+  // Aktualizacja wartoci formularza, gdy zmienia siê klient
   useEffect(() => {
     if (client) {
       form.reset({
@@ -136,6 +150,11 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
         NumerSprawy: client.NumerSprawy || "",
         Inspektor: client.Inspektor || "",
         Firma: client.Firma || "",
+        DataZloWnio: client.DataZloWnio || "",
+        DataWydWni: client.DataWydWni || "",
+        DataOdbKartyPob: client.DataOdbKartyPob || "",
+        DataOdbDecyzji: client.DataOdbDecyzji || "",
+        DataZakLegPob: client.DataZakLegPob || "",
         FormWni: isYes(client.FormWni),
         ZalNrJed: isYes(client.ZalNrJed),
         KopiaPasz: isYes(client.KopiaPasz),
@@ -161,14 +180,14 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
     }
   }, [client]);
 
-  // Obsługa przesyłania formularza
+  // Obs³uga przesy³ania formularza
   async function onSubmit(data: ClientFormValues) {
     if (!client) return
 
     setIsSubmitting(true)
 
     try {
-      // Przygotuj dane z poprawną obsługą wartości "none"
+      // Przygotuj dane z poprawn¹ obs³ug¹ wartoci "none"
       const processedData = {
         ...data,
         CelPobytu: data.CelPobytu === "none" ? null : data.CelPobytu,
@@ -181,7 +200,7 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
         Pelnomocnictwo: data.Pelnomocnictwo ? "Yes" : "No",
       }
 
-      console.log("Wysyłanie danych do aktualizacji:", processedData);
+      console.log("Wysy³anie danych do aktualizacji:", processedData);
       console.log("Dane dokumentów:", {
         FormWni: processedData.FormWni,
         ZalNrJed: processedData.ZalNrJed,
@@ -195,7 +214,7 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
       const updatedClient = await updateClient(client.id, processedData)
 
       if (!updatedClient) {
-        throw new Error("Nie udało się zaktualizować klienta")
+        throw new Error("Nie uda³o siê zaktualizowaæ klienta")
       }
 
       console.log("Zaktualizowany klient otrzymany z bazy:", updatedClient);
@@ -208,9 +227,9 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
         Pelnomocnictwo: updatedClient.Pelnomocnictwo,
       });
 
-      // Wywołanie callbacka, jeśli został dostarczony
+      // Wywo³anie callbacka, jeli zosta³ dostarczony
       if (onClientUpdated) {
-        // Poprawić niezgodności typów w normalizedClient
+        // Poprawiæ niezgodnoci typów w normalizedClient
         const normalizedClient = {
           ...updatedClient,
           FormWni: data.FormWni ? "Yes" : "No",
@@ -227,16 +246,16 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
       // Komunikat o powodzeniu
       toast({
         title: "Klient zaktualizowany",
-        description: `${data.Name} został pomyślnie zaktualizowany.`,
+        description: `${data.Name} zosta³ pomylnie zaktualizowany.`,
       })
 
-      // Wyjście z trybu edycji
+      // Wyjcie z trybu edycji
       setIsEditMode(false)
     } catch (error) {
-      console.error("Błąd podczas aktualizacji klienta:", error)
+      console.error("B³¹d podczas aktualizacji klienta:", error)
       toast({
-        title: "Błąd",
-        description: "Nie udało się zaktualizować klienta. Spróbuj ponownie później.",
+        title: "B³¹d",
+        description: "Nie uda³o siê zaktualizowaæ klienta. Spróbuj ponownie póniej.",
         variant: "destructive",
       })
     } finally {
@@ -244,10 +263,10 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
     }
   }
 
-  // Przełączanie trybu edycji
+  // Prze³¹czanie trybu edycji
   const toggleEditMode = () => {
     if (isEditMode && client) {
-      // Jeśli anulujemy edycję, resetujemy formularz do oryginalnych wartości
+      // Jeli anulujemy edycjê, resetujemy formularz do oryginalnych wartoci
       form.reset({
         Name: client.Name || "",
         Status: client.Status || "",
@@ -264,6 +283,11 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
         NumerSprawy: client.NumerSprawy || "",
         Inspektor: client.Inspektor || "",
         Firma: client.Firma || "",
+        DataZloWnio: client.DataZloWnio || "",
+        DataWydWni: client.DataWydWni || "",
+        DataOdbKartyPob: client.DataOdbKartyPob || "",
+        DataOdbDecyzji: client.DataOdbDecyzji || "",
+        DataZakLegPob: client.DataZakLegPob || "",
         FormWni: isYes(client.FormWni),
         ZalNrJed: isYes(client.ZalNrJed),
         KopiaPasz: isYes(client.KopiaPasz),
@@ -275,7 +299,7 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
     setIsEditMode(!isEditMode)
   }
 
-  // Obsługa zamknięcia dialogu
+  // Obs³uga zamkniêcia dialogu
   const handleDialogClose = (open: boolean) => {
     if (!open) {
       // Resetowanie trybu edycji przy zamykaniu
@@ -284,13 +308,96 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
     onOpenChange(open)
   }
 
+  // Dodaj funkcjê do obs³ugi wgrywania plików
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0 || !client?.id) return;
+
+    setIsUploading(true);
+    
+    try {
+      let uploadedUrls = [];
+      
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        // Sprawdzenie rozmiaru pliku (max 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+          toast({
+            title: "B³¹d",
+            description: `Plik "${file.name}" jest zbyt du¿y. Maksymalny rozmiar to 10MB.`,
+            variant: "destructive",
+          });
+          continue;
+        }
+        
+        // Sprawdzenie typu pliku
+        const fileType = file.type;
+        const allowedTypes = [
+          'application/pdf', 
+          'application/msword', 
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        ];
+        
+        if (!allowedTypes.includes(fileType)) {
+          toast({
+            title: "B³¹d",
+            description: `Plik "${file.name}" ma nieprawid³owy format. Dozwolone formaty to PDF i Word.`,
+            variant: "destructive",
+          });
+          continue;
+        }
+        
+        // Wgraj plik i pobierz URL
+        const fileUrl = await uploadClientDocument(client.id, file);
+        
+        if (fileUrl) {
+          uploadedUrls.push(fileUrl);
+        }
+      }
+      
+      // Aktualizuj klienta, dodaj¹c nowe dokumenty do istniej¹cej listy
+      if (uploadedUrls.length > 0) {
+        const currentDocs = client.Doc || "";
+        const updatedDocs = currentDocs 
+          ? currentDocs + ',' + uploadedUrls.join(',') 
+          : uploadedUrls.join(',');
+        
+        // Aktualizacja klienta z nowymi URL-ami dokumentów
+        const updatedClient = await updateClient(client.id, { Doc: updatedDocs });
+        
+        // Powiadom rodzica o aktualizacji
+        if (onClientUpdated) {
+          onClientUpdated(updatedClient);
+        }
+        
+        toast({
+          title: "Sukces",
+          description: `Wgrano pomylnie ${uploadedUrls.length} ${uploadedUrls.length === 1 ? 'dokument' : 'dokumenty'}.`,
+        });
+      }
+    } catch (error) {
+      console.error("B³¹d podczas wgrywania pliku:", error);
+      toast({
+        title: "B³¹d",
+        description: "Wyst¹pi³ b³¹d podczas wgrywania dokumentu.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+      // Zresetuj input plików
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
   if (!client) return null
 
   // Formatowanie daty
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return "Brak danych"
 
-    // Próba parsowania różnych formatów daty
+    // Próba parsowania ró¿nych formatów daty
     try {
       // Sprawdzenie, czy data zawiera format GMT
       if (dateString.includes("GMT")) {
@@ -304,14 +411,14 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
         return date.toLocaleDateString()
       }
 
-      // Jeśli nie udało się sparsować, zwróć oryginalny string
+      // Jeli nie uda³o siê sparsowaæ, zwróæ oryginalny string
       return dateString
     } catch (error) {
       return dateString
     }
   }
 
-  // Utwórz pomocniczą funkcję do sprawdzania wartości "Yes" 
+  // Utwórz pomocnicz¹ funkcjê do sprawdzania wartoci "Yes" 
   const isYes = (value: any): boolean => {
     if (value === true || value === "true") return true;
     if (typeof value === "string" && (value.toLowerCase() === "yes" || value === "Yes")) return true;
@@ -349,7 +456,7 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
             </Button>
           </DialogTitle>
           <DialogDescription>
-            Numer sprawy: {client.NumerSprawy || "Brak"} | Data złożenia wniosku: {formatDate(client.DataZloWnio)}
+            Numer sprawy: {client.NumerSprawy || "Brak"} | Data z³o¿enia wniosku: {formatDate(client.DataZloWnio)}
           </DialogDescription>
         </DialogHeader>
 
@@ -369,7 +476,7 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
                         name="Name"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Imię i nazwisko</FormLabel>
+                            <FormLabel>Imiê i nazwisko</FormLabel>
                             <FormControl>
                               <Input {...field} />
                             </FormControl>
@@ -507,6 +614,104 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
                           </FormItem>
                         )}
                       />
+
+                      <FormField
+                        control={form.control}
+                        name="NumerSprawy"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Numer sprawy</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="Inspektor"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Inspektor</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="DataZloWnio"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Data z³o¿enia wniosku</FormLabel>
+                            <FormControl>
+                              <Input type="date" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="DataWydWni"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Data wydania wniosku</FormLabel>
+                            <FormControl>
+                              <Input type="date" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="DataOdbKartyPob"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Data odbioru karty pobytu</FormLabel>
+                            <FormControl>
+                              <Input type="date" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="DataOdbDecyzji"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Data odbioru decyzji</FormLabel>
+                            <FormControl>
+                              <Input type="date" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="DataZakLegPob"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Data zakoñczenia legalnego pobytu</FormLabel>
+                            <FormControl>
+                              <Input type="date" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </div>
 
                     <FormField
@@ -557,7 +762,7 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
                                 />
                               </FormControl>
                               <div>
-                                <FormLabel className="font-normal">Załącznik nr 1</FormLabel>
+                                <FormLabel className="font-normal">Za³¹cznik nr 1</FormLabel>
                                 <p className="text-xs text-muted-foreground">{field.value ? "Tak" : "Nie"}</p>
                               </div>
                             </FormItem>
@@ -614,7 +819,7 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
                                 />
                               </FormControl>
                               <div>
-                                <FormLabel className="font-normal">4 zdjęcia</FormLabel>
+                                <FormLabel className="font-normal">4 zdjêcia</FormLabel>
                                 <p className="text-xs text-muted-foreground">{field.value ? "Tak" : "Nie"}</p>
                               </div>
                             </FormItem>
@@ -633,7 +838,7 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
                                 />
                               </FormControl>
                               <div>
-                                <FormLabel className="font-normal">Pełnomocnictwo</FormLabel>
+                                <FormLabel className="font-normal">Pe³nomocnictwo</FormLabel>
                                 <p className="text-xs text-muted-foreground">{field.value ? "Tak" : "Nie"}</p>
                               </div>
                             </FormItem>
@@ -657,7 +862,7 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-muted-foreground" />
                     <div>
-                      <p className="text-sm font-medium">Imię i nazwisko</p>
+                      <p className="text-sm font-medium">Imiê i nazwisko</p>
                       <p className="text-sm text-muted-foreground">{client.Name || "Brak danych"}</p>
                     </div>
                   </div>
@@ -705,7 +910,7 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
                   <div className="flex items-center gap-2">
                     <CreditCard className="h-4 w-4 text-muted-foreground" />
                     <div>
-                      <p className="text-sm font-medium">Status płatności</p>
+                      <p className="text-sm font-medium">Status p³atnoci</p>
                       <p className="text-sm text-muted-foreground">{client.StatusPla || "Brak danych"}</p>
                     </div>
                   </div>
@@ -714,20 +919,20 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
             </CardContent>
           </Card>
 
-          {/* Zakładki dla dodatkowych informacji */}
+          {/* Zak³adki dla dodatkowych informacji */}
           {!isEditMode && (
             <Tabs defaultValue="details" className="w-full">
               <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="details">Szczegóły</TabsTrigger>
+                <TabsTrigger value="details">Szczegó³y</TabsTrigger>
                 <TabsTrigger value="documents">Dokumenty</TabsTrigger>
                 <TabsTrigger value="notes">Notatki</TabsTrigger>
               </TabsList>
 
-              {/* Zakładka szczegółów sprawy */}
+              {/* Zak³adka szczegó³ów sprawy */}
               <TabsContent value="details" className="mt-4">
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">Szczegóły</CardTitle>
+                    <CardTitle className="text-lg">Szczegó³y</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -750,7 +955,7 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-muted-foreground" />
                         <div>
-                          <p className="text-sm font-medium">Data złożenia wniosku</p>
+                          <p className="text-sm font-medium">Data z³o¿enia wniosku</p>
                           <p className="text-sm text-muted-foreground">{formatDate(client.DataZloWnio)}</p>
                         </div>
                       </div>
@@ -774,7 +979,7 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-muted-foreground" />
                         <div>
-                          <p className="text-sm font-medium">Data zakończenia legalnego pobytu</p>
+                          <p className="text-sm font-medium">Data zakoñczenia legalnego pobytu</p>
                           <p className="text-sm text-muted-foreground">{formatDate(client.DataZakLegPob)}</p>
                         </div>
                       </div>
@@ -799,17 +1004,47 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
                 </Card>
               </TabsContent>
 
-              {/* Zakładka dokumentów */}
+              {/* Zak³adka dokumentów */}
               <TabsContent value="documents" className="mt-4">
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">Dokumenty</CardTitle>
+                    <div className="flex justify-between items-center">
+                      <CardTitle className="text-lg">Dokumenty</CardTitle>
+                      <div className="flex gap-2">
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleFileUpload}
+                          className="hidden"
+                          accept=".pdf,.doc,.docx"
+                          multiple
+                        />
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={isUploading}
+                        >
+                          {isUploading ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Wgrywanie...
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="h-4 w-4 mr-2" />
+                              Dodaj dokument
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
                       {client.Doc ? (
                         <div>
-                          <h3 className="text-sm font-medium mb-2">Załączone dokumenty:</h3>
+                          <h3 className="text-sm font-medium mb-2">Za³¹czone dokumenty:</h3>
                           <div className="space-y-2">
                             {client.Doc.split(",").map((doc, index) => (
                               <div key={index} className="flex items-center gap-2 p-2 border rounded-md">
@@ -827,7 +1062,9 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
                           </div>
                         </div>
                       ) : (
-                        <div className="text-center py-4 text-muted-foreground">Brak załączonych dokumentów</div>
+                        <div className="text-center py-4 text-muted-foreground">
+                          Brak za³¹czonych dokumentów. Kliknij "Dodaj dokument", aby wgraæ pierwszy plik.
+                        </div>
                       )}
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
@@ -844,7 +1081,7 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
                         <div className="flex items-center gap-2">
                           <FileCheck className="h-4 w-4 text-muted-foreground" />
                           <div>
-                            <p className="text-sm font-medium">Załącznik nr jedności</p>
+                            <p className="text-sm font-medium">Za³¹cznik nr jednoci</p>
                             <p className="text-sm text-muted-foreground">
                               {isYes(client.ZalNrJed) ? "Tak" : "Nie"}
                             </p>
@@ -864,7 +1101,7 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
                         <div className="flex items-center gap-2">
                           <FileCheck className="h-4 w-4 text-muted-foreground" />
                           <div>
-                            <p className="text-sm font-medium">Załącznik Blue</p>
+                            <p className="text-sm font-medium">Za³¹cznik Blue</p>
                             <p className="text-sm text-muted-foreground">
                               {isYes(client.ZalBlue) ? "Tak" : "Nie"}
                             </p>
@@ -874,7 +1111,7 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
                         <div className="flex items-center gap-2">
                           <FileCheck className="h-4 w-4 text-muted-foreground" />
                           <div>
-                            <p className="text-sm font-medium">Cztery zdjęcia</p>
+                            <p className="text-sm font-medium">Cztery zdjêcia</p>
                             <p className="text-sm text-muted-foreground">
                               {isYes(client.CzteZdjecia) ? "Tak" : "Nie"}
                             </p>
@@ -884,7 +1121,7 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
                         <div className="flex items-center gap-2">
                           <FileCheck className="h-4 w-4 text-muted-foreground" />
                           <div>
-                            <p className="text-sm font-medium">Pełnomocnictwo</p>
+                            <p className="text-sm font-medium">Pe³nomocnictwo</p>
                             <p className="text-sm text-muted-foreground">
                               {isYes(client.Pelnomocnictwo) ? "Tak" : "Nie"}
                             </p>
@@ -896,7 +1133,7 @@ export function ClientDetailsModal({ open, onOpenChange, client, onClientUpdated
                 </Card>
               </TabsContent>
 
-              {/* Zakładka notatek */}
+              {/* Zak³adka notatek */}
               <TabsContent value="notes" className="mt-4">
                 <Card>
                   <CardHeader className="pb-3">

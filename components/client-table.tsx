@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ChevronLeft, ChevronRight, MoreHorizontal, Plus, Search, SlidersHorizontal, Loader2 } from "lucide-react"
+import { ChevronLeft, ChevronRight, MoreHorizontal, Plus, Search, RefreshCw, Loader2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CreateClientModal } from "./create-client-modal"
@@ -21,14 +21,14 @@ import { ClientDetailsModal } from "./client-details-modal"
 import { toast } from "@/hooks/use-toast"
 import { type Client, getClients, deleteClient } from "@/lib/superbase"
 
-// Dodaj funkcję formatującą datę na początku komponentu, po deklaracji stanów
+// Dodaj funkcjÃª formatujÂ¹cÂ¹ datÃª na poczÂ¹tku komponentu, po deklaracji stanÃ³w
 // Funkcja do formatowania daty bez strefy czasowej
 const formatDate = (dateString: string | null | undefined) => {
   if (!dateString) return "Brak danych";
   
   // Sprawdzenie czy data zawiera format GMT
   if (dateString.includes("GMT")) {
-    // Usuń informację o strefie czasowej
+    // UsuÃ± informacjÃª o strefie czasowej
     return dateString.split(" (")[0];
   }
   
@@ -45,7 +45,7 @@ export default function ClientTable() {
   const [isLoading, setIsLoading] = useState(true)
   const [showCompleted, setShowCompleted] = useState(false)
 
-  // Pobieranie klientów z Supabase
+  // Pobieranie klientÃ³w z Supabase
   useEffect(() => {
     async function fetchClients() {
       setIsLoading(true)
@@ -53,10 +53,10 @@ export default function ClientTable() {
         const data = await getClients()
         setClients(data)
       } catch (error) {
-        console.error("Błąd podczas pobierania klientów:", error)
+        console.error("BÂ³Â¹d podczas pobierania klientÃ³w:", error)
         toast({
-          title: "Błąd",
-          description: "Nie udało się pobrać listy klientów. Spróbuj ponownie później.",
+          title: "BÂ³Â¹d",
+          description: "Nie udaÂ³o siÃª pobraÃ¦ listy klientÃ³w. SprÃ³buj ponownie pÃ³Âniej.",
           variant: "destructive",
         })
       } finally {
@@ -67,14 +67,14 @@ export default function ClientTable() {
     fetchClients()
   }, [])
 
-  // Odświeżanie listy klientów
+  // OdÂwieÂ¿anie listy klientÃ³w
   const refreshClients = async () => {
     setIsLoading(true)
     try {
       const data = await getClients()
       setClients(data)
     } catch (error) {
-      console.error("Błąd podczas odświeżania klientów:", error)
+      console.error("BÂ³Â¹d podczas odÂwieÂ¿ania klientÃ³w:", error)
     } finally {
       setIsLoading(false)
     }
@@ -85,22 +85,22 @@ export default function ClientTable() {
 
   
 
-  // Obsługa dodawania nowego klienta
+  // ObsÂ³uga dodawania nowego klienta
   const handleClientCreated = (newClient: Client) => {
     setClients((prevClients) => [newClient, ...prevClients])
   }
 
-  // Obsługa wyświetlania szczegółów klienta
+  // ObsÂ³uga wyÂwietlania szczegÃ³Â³Ã³w klienta
   const handleViewDetails = (client: Client) => {
     setSelectedClient(client)
     setIsDetailsModalOpen(true)
   }
 
-  // Obsługa aktualizacji klienta
+  // ObsÂ³uga aktualizacji klienta
   const handleClientUpdated = (updatedClient: Client) => {
-    console.log("Klient przed aktualizacją w tabeli:", selectedClient);
+    console.log("Klient przed aktualizacjÂ¹ w tabeli:", selectedClient);
     console.log("Zaktualizowany klient przekazany do tabeli:", updatedClient);
-    console.log("Status dokumentów klienta:", {
+    console.log("Status dokumentÃ³w klienta:", {
       FormWni: updatedClient.FormWni,
       ZalNrJed: updatedClient.ZalNrJed,
       KopiaPasz: updatedClient.KopiaPasz,
@@ -120,30 +120,30 @@ export default function ClientTable() {
     setSelectedClient(updatedClient);
   }
 
-  // Obsługa usuwania klienta
+  // ObsÂ³uga usuwania klienta
   const handleDeleteClient = async (clientId: string) => {
-    // Potwierdzenie usunięcia
-    if (window.confirm("Czy na pewno chcesz usunąć tego klienta? Tej operacji nie można cofnąć.")) {
+    // Potwierdzenie usuniÃªcia
+    if (window.confirm("Czy na pewno chcesz usunÂ¹Ã¦ tego klienta? Tej operacji nie moÂ¿na cofnÂ¹Ã¦.")) {
       try {
         const success = await deleteClient(clientId)
 
         if (success) {
-          // Aktualizacja listy klientów
+          // Aktualizacja listy klientÃ³w
           setClients((prevClients) => prevClients.filter((client) => client.id !== clientId))
 
           // Komunikat o powodzeniu
           toast({
-            title: "Klient usunięty",
-            description: "Klient został pomyślnie usunięty.",
+            title: "Klient usuniÃªty",
+            description: "Klient zostaÂ³ pomyÂlnie usuniÃªty.",
           })
         } else {
-          throw new Error("Nie udało się usunąć klienta")
+          throw new Error("Nie udaÂ³o siÃª usunÂ¹Ã¦ klienta")
         }
       } catch (error) {
-        console.error("Błąd podczas usuwania klienta:", error)
+        console.error("BÂ³Â¹d podczas usuwania klienta:", error)
         toast({
-          title: "Błąd",
-          description: "Nie udało się usunąć klienta. Spróbuj ponownie później.",
+          title: "BÂ³Â¹d",
+          description: "Nie udaÂ³o siÃª usunÂ¹Ã¦ klienta. SprÃ³buj ponownie pÃ³Âniej.",
           variant: "destructive",
         })
       }
@@ -151,7 +151,7 @@ export default function ClientTable() {
   }
 
 
-  // Filtrowanie klientów na podstawie wyszukiwania i statusu
+  // Filtrowanie klientÃ³w na podstawie wyszukiwania i statusu
   const filteredClients = clients.filter((client) => {
     const matchesSearch =
       client.Name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -165,8 +165,8 @@ export default function ClientTable() {
 
     const matchesStatus = statusFilter === "all" || client.Status?.toLowerCase() === statusFilter.toLowerCase()
     
-    // Sprawdź czy klient powinien być wyświetlany zgodnie z filtrem "zakończonych"
-    const matchesCompletedFilter = showCompleted || client.Status?.toLowerCase() !== "zakończony"
+    // SprawdÂ czy klient powinien byÃ¦ wyÂwietlany zgodnie z filtrem "zakoÃ±czonych"
+    const matchesCompletedFilter = showCompleted || client.Status?.toLowerCase() !== "zakoÃ±czony"
 
     return matchesSearch && matchesStatus && matchesCompletedFilter
   })
@@ -181,7 +181,7 @@ export default function ClientTable() {
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">Klienci</h1>
-        <p className="text-muted-foreground">Zarządzaj swoimi klientami i ich danymi</p>
+        <p className="text-muted-foreground">ZarzÂ¹dzaj swoimi klientami i ich danymi</p>
       </div>
 
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -190,7 +190,7 @@ export default function ClientTable() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Szukaj klientów..."
+              placeholder="Szukaj klientÃ³w..."
               className="w-full pl-8"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -205,7 +205,7 @@ export default function ClientTable() {
               <SelectItem value="all">Wszystkie statusy</SelectItem>
               <SelectItem value="aktywny">Aktywny</SelectItem>
               <SelectItem value="w trakcie">W trakcie</SelectItem>
-              <SelectItem value="zakończony">zakończony</SelectItem>
+              <SelectItem value="zakoÃ±czony">zakoÃ±czony</SelectItem>
               <SelectItem value="nieaktywny">Nieaktywny</SelectItem>
             </SelectContent>
           </Select>
@@ -215,16 +215,16 @@ export default function ClientTable() {
             onValueChange={(value) => setShowCompleted(value === "show")}
           >
             <SelectTrigger className="w-full md:w-52">
-              <SelectValue placeholder="Pokaż zakończone" />
+              <SelectValue placeholder="PokaÂ¿ zakoÃ±czone" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="hide">Ukryj zakończone</SelectItem>
-              <SelectItem value="show">Pokaż zakończone</SelectItem>
+              <SelectItem value="hide">Ukryj zakoÃ±czone</SelectItem>
+              <SelectItem value="show">PokaÂ¿ zakoÃ±czone</SelectItem>
             </SelectContent>
           </Select>
 
           <Button variant="outline" size="icon" onClick={refreshClients}>
-            <SlidersHorizontal size={16} />
+            <RefreshCw size={16}  />
           </Button>
         </div>
 
@@ -241,7 +241,7 @@ export default function ClientTable() {
         onClientCreated={handleClientCreated}
       />
 
-      {/* Modalne okno szczegółów klienta */}
+      {/* Modalne okno szczegÃ³Â³Ã³w klienta */}
       <ClientDetailsModal
         open={isDetailsModalOpen}
         onOpenChange={setIsDetailsModalOpen}
@@ -251,23 +251,23 @@ export default function ClientTable() {
 
       <Card>
         <CardHeader className="px-6 py-4">
-          <CardTitle>Lista klientów</CardTitle>
+          <CardTitle>Lista klientÃ³w</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex justify-center items-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <span className="ml-2 text-lg">Ładowanie klientów...</span>
+              <span className="ml-2 text-lg">Â£adowanie klientÃ³w...</span>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Imię i nazwisko</TableHead>
+                  <TableHead>ImiÃª i nazwisko</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="hidden md:table-cell">Cel Pobytu</TableHead>
                   <TableHead className="hidden md:table-cell">NumerSprawy</TableHead>
-                  <TableHead className="hidden md:table-cell">Data Złożenia Wniosku</TableHead>
+                  <TableHead className="hidden md:table-cell">Data ZÂ³oÂ¿enia Wniosku</TableHead>
                   <TableHead className="text-right">Akcje</TableHead>
                 </TableRow>
               </TableHeader>
@@ -275,7 +275,7 @@ export default function ClientTable() {
                 {filteredClients.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-8">
-                      Nie znaleziono klientów. Spróbuj dostosować kryteria wyszukiwania.
+                      Nie znaleziono klientÃ³w. SprÃ³buj dostosowaÃ¦ kryteria wyszukiwania.
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -287,7 +287,7 @@ export default function ClientTable() {
                         className={
                           client.Status?.toLowerCase() === "aktywny"
                             ? "bg-green-100 text-green-800"
-                            : client.Status?.toLowerCase() === "nieaktywny" || client.Status?.toLowerCase() === "zakończony"
+                            : client.Status?.toLowerCase() === "nieaktywny" || client.Status?.toLowerCase() === "zakoÃ±czony"
                             ? "bg-red-100 text-red-800"
                             : client.Status?.toLowerCase() === "w trakcie"
                             ? "bg-blue-100 text-blue-800"
@@ -310,14 +310,14 @@ export default function ClientTable() {
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Akcje</DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleViewDetails(client)}>Szczegóły</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleViewDetails(client)}>SzczegÃ³Â³y</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleViewDetails(client)}>Edytuj</DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               className="text-destructive"
                               onClick={() => handleDeleteClient(client.id)}
                             >
-                              Usuń klienta
+                              UsuÃ± klienta
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -334,7 +334,7 @@ export default function ClientTable() {
 
       <div className="flex items-center justify-between">
         <div className="text-sm text-muted-foreground">
-          Wyświetlanie <strong>{filteredClients.length}</strong> z <strong>{clients.length}</strong> klientów
+          WyÂwietlanie <strong>{filteredClients.length}</strong> z <strong>{clients.length}</strong> klientÃ³w
         </div>
           <Select value={String(itemsPerPage)} onValueChange={(value) => {
               setItemsPerPage(Number(value))
@@ -344,10 +344,10 @@ export default function ClientTable() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="5">5 na stronę</SelectItem>
-            <SelectItem value="10">10 na stronę</SelectItem>
-            <SelectItem value="20">20 na stronę</SelectItem>
-            <SelectItem value="50">50 na stronę</SelectItem>
+            <SelectItem value="5">5 na stronÃª</SelectItem>
+            <SelectItem value="10">10 na stronÃª</SelectItem>
+            <SelectItem value="20">20 na stronÃª</SelectItem>
+            <SelectItem value="50">50 na stronÃª</SelectItem>
           </SelectContent>
         </Select>
         <Button

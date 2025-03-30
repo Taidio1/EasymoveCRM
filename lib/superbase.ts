@@ -1,11 +1,11 @@
 import { createClient } from "@supabase/supabase-js"
 
-// Sprawdzenie, czy zmienne środowiskowe są zdefiniowane
+// Sprawdzenie, czy zmienne rodowiskowe sš zdefiniowane
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error("Brakuje zmiennych środowiskowych Supabase. Sprawdź plik .env")
+  throw new Error("Brakuje zmiennych rodowiskowych Supabase. Sprawd plik .env")
 }
 
 
@@ -14,6 +14,15 @@ export interface User {
   id: string
   email: string
   role: 'Admin' | 'Boss' | 'Pracownik'
+}
+
+// Rozszerzamy interfejs User o pola z profilu
+export interface UserProfile {
+  id: string;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  role: string | null;
 }
 
 // Metoda logowania
@@ -114,24 +123,24 @@ export interface Client {
   Pelnomocnictwo: string | null
 }
 
-// Funkcje do interakcji z bazą danych
+// Funkcje do interakcji z bazš danych
 
 // Pobieranie wszystkich klientów
 export async function getClients(): Promise<Client[]> {
   try {
     console.log("Próba pobrania klientów...");
     console.log("Supabase URL:", supabaseUrl);
-    console.log("Supabase Anon Key:", supabaseAnonKey ? "✓ Klucz obecny" : "✗ Brak klucza");
+    console.log("Supabase Anon Key:", supabaseAnonKey ? "? Klucz obecny" : "? Brak klucza");
 
     const { data, error } = await supabase
       .from("clients")
       .select("*");
 
     if (error) {
-      console.error("Szczegółowy błąd Supabase:", error);
+      console.error("Szczegółowy błšd Supabase:", error);
       console.error("Kod błędu:", error.code);
       console.error("Szczegóły:", error.details);
-      console.error("Wiadomość:", error.message);
+      console.error("Wiadomoć:", error.message);
       return [];
     }
 
@@ -144,7 +153,7 @@ export async function getClients(): Promise<Client[]> {
 
     return data || [];
   } catch (catchError) {
-    console.error("Błąd catch:", catchError);
+    console.error("Błšd catch:", catchError);
     return [];
   }
 }
@@ -155,7 +164,7 @@ export async function getClientById(id: string): Promise<Client | null> {
   const { data, error } = await supabase.from("clients").select("*").eq("id", id).single()
 
   if (error) {
-    console.error("Błąd podczas pobierania klienta:", error)
+    console.error("Błšd podczas pobierania klienta:", error)
     return null
   }
 
@@ -170,31 +179,32 @@ export async function addClient(client: Omit<Client, "id" | "created_at">): Prom
     const { data, error } = await supabase.from("clients").insert([client]).select();
 
     if (error) {
-      console.error("Szczegółowy błąd Supabase podczas dodawania klienta:");
+      console.error("Szczegółowy błšd Supabase podczas dodawania klienta:");
       console.error("Kod błędu:", error.code);
       console.error("Szczegóły:", error.details);
-      console.error("Wiadomość:", error.message);
+      console.error("Wiadomoć:", error.message);
       return null;
     }
 
-    console.log("Klient dodany pomyślnie:", data?.[0]);
+    console.log("Klient dodany pomylnie:", data?.[0]);
     return data?.[0] || null;
   } catch (catchError) {
-    console.error("Nieoczekiwany błąd podczas dodawania klienta:", catchError);
+    console.error("Nieoczekiwany błšd podczas dodawania klienta:", catchError);
     return null;
   }
 }
 
-// Aktualizacja klienta
-export async function updateClient(id: string, client: Partial<Client>): Promise<Client | null> {
-  const { data, error } = await supabase.from("clients").update(client).eq("id", id).select()
+// Funkcja aktualizacji klienta
+export async function updateClient(id: string, updates: Partial<Client>): Promise<Client> {
+  const { data, error } = await supabase
+    .from('clients')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
 
-  if (error) {
-    console.error("Błąd podczas aktualizacji klienta:", error)
-    return null
-  }
-
-  return data?.[0] || null
+  if (error) throw error;
+  return data;
 }
 
 // Usuwanie klienta
@@ -202,10 +212,134 @@ export async function deleteClient(id: string): Promise<boolean> {
   const { error } = await supabase.from("clients").delete().eq("id", id)
 
   if (error) {
-    console.error("Błąd podczas usuwania klienta:", error)
+    console.error("Błšd podczas usuwania klienta:", error)
     return false
   }
 
   return true
+}
+
+// Funkcja pobierajšca pełny profil użytkownika
+export async function getUserProfile(): Promise<UserProfile | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) return null;
+  
+  // Pobierz dane profilu
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select('first_name, last_name, role')
+    .eq('id', user.id)
+    .single();
+  
+  if (error) {
+    console.error("Błšd podczas pobierania profilu:", error);
+    return null;
+  }
+  
+  return {
+    id: user.id,
+    email: user.email || '',
+    first_name: profile?.first_name || null,
+    last_name: profile?.last_name || null,
+    role: profile?.role || null
+  };
+}
+
+// Funkcja do wgrywania pliku do bucketu documents
+export async function uploadClientDocument(clientId: string, file: File): Promise<string | null> {
+  try {
+    // Sprawd czy użytkownik jest zalogowany
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      console.log('Brak sesji użytkownika');
+      return null;
+    }
+
+    // Generuj nazwę pliku
+    const timestamp = Date.now();
+    const fileName = `${clientId}/${timestamp}_${file.name}`;
+
+    // Wgraj plik
+    const { data, error } = await supabase
+      .storage
+      .from('documents')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: true,
+        contentType: file.type // Dodajemy typ zawartoci
+      });
+
+    if (error) {
+      console.log(`Błšd podczas wgrywania pliku: ${error.message}`);
+      return null;
+    }
+
+    // Pobierz publiczny URL
+    const { data: urlData } = supabase
+      .storage
+      .from('documents')
+      .getPublicUrl(fileName);
+
+    return urlData?.publicUrl || null;
+  } catch (err) {
+    console.log(`Błšd podczas wgrywania pliku: ${err instanceof Error ? err.message : 'Nieznany błšd'}`);
+    return null;
+  }
+}
+
+// Funkcja do pobierania listy plików klienta
+export async function getClientDocuments(clientId: string): Promise<Array<{ name: string, url: string, path: string }>> {
+  try {
+    // Listujemy pliki w folderze klienta
+    const { data, error } = await supabase
+      .storage
+      .from('documents')
+      .list(clientId, {
+        sortBy: { column: 'created_at', order: 'desc' }
+      });
+
+    if (error) {
+      console.error('Błšd podczas pobierania listy plików:', error);
+      return [];
+    }
+
+    // Tworzymy listę plików z URL-ami do pobrania
+    return data.map(file => {
+      const url = supabase
+        .storage
+        .from('documents')
+        .getPublicUrl(`${clientId}/${file.name}`).data.publicUrl;
+
+      return {
+        name: file.name,
+        url: url,
+        path: `${clientId}/${file.name}`
+      };
+    });
+  } catch (error) {
+    console.error('Błšd podczas pobierania listy plików:', error);
+    return [];
+  }
+}
+
+// Funkcja do usuwania pliku
+export async function deleteClientDocument(filePath: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .storage
+      .from('documents')
+      .remove([filePath]);
+
+    if (error) {
+      console.error('Błšd podczas usuwania pliku:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Błšd podczas usuwania pliku:', error);
+    return false;
+  }
 }
 

@@ -24,7 +24,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar />
       <div
-        className={`flex flex-col flex-1 overflow-hidden transition-all duration-300 ${isOpen ? "md:ml-64" : "ml-0"}`}
+        className={`flex flex-col flex-1 overflow-hidden transition-all duration-300`}
       >
         <TopNavbar />
         <main className="flex-1 overflow-y-auto p-4 md:p-6">{children}</main>
