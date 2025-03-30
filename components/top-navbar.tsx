@@ -23,7 +23,7 @@ export default function TopNavbar() {
   const { setTheme, theme } = useTheme()
   const { user, logout } = useAuth()
 
-  // Pobranie inicjałów z emaila użytkownika
+  // Pobranie inicjaÅÃ³w z emaila uÅ¼ytkownika
   const getInitials = (email: string) => {
     if (!email) return "U"
     const parts = email.split("@")[0].split(".")
@@ -100,7 +100,7 @@ export default function TopNavbar() {
               <DropdownMenuLabel>
                 {user?.email}
                 <div className="text-xs font-normal text-muted-foreground mt-1">
-                  {user?.role || "Użytkownik"}
+                  {user?.role || "UÅ¼ytkownik"}
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />

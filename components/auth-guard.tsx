@@ -30,7 +30,7 @@ export function AuthGuard({ children }: PropsWithChildren) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-muted/40">
         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-        <p className="text-lg font-medium">Ładowanie aplikacji...</p>
+        <p className="text-lg font-medium">Åadowanie aplikacji...</p>
       </div>
     )
   }

@@ -25,7 +25,7 @@ import { useAuth } from "@/hooks/use-auth"
 // Schemat formularza klienta
 const clientFormSchema = z.object({
   Name: z.string().min(2, {
-    message: "Imię i nazwisko musi mieć co najmniej 2 znaki.",
+    message: "ImiÄ i nazwisko musi mieÄ co najmniej 2 znaki.",
   }),
   Status: z.string().min(1, {
     message: "Status jest wymagany.",
@@ -39,7 +39,7 @@ const clientFormSchema = z.object({
   Email: z
     .string()
     .email({
-      message: "Wprowadź prawidłowy adres email.",
+      message: "WprowadÅº prawidÅowy adres email.",
     })
     .optional(),
   Birthday: z.string().optional(),
@@ -64,9 +64,9 @@ interface CreateClientModalProps {
 
 export function CreateClientModal({ open, onOpenChange, onClientCreated }: CreateClientModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const { user } = useAuth() // Pobieranie informacji o zalogowanym użytkowniku
+  const { user } = useAuth() // Pobieranie informacji o zalogowanym uÅ¼ytkowniku
 
-  // Inicjalizacja formularza z wartościami domyślnymi
+  // Inicjalizacja formularza z wartoÅciami domyÅlnymi
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientFormSchema),
     defaultValues: {
@@ -92,7 +92,7 @@ export function CreateClientModal({ open, onOpenChange, onClientCreated }: Creat
     },
   })
 
-  // Obsługa przesyłania formularza
+  // ObsÅuga przesyÅania formularza
   async function onSubmit(data: ClientFormValues) {
     setIsSubmitting(true)
     console.log("Rozpoczynam dodawanie klienta:", data);
@@ -110,8 +110,8 @@ export function CreateClientModal({ open, onOpenChange, onClientCreated }: Creat
         Email: data.Email || null,
         Birthday: data.Birthday || null,
         Notes: data.Notes || null,
-        Creator: user?.email || null, // Automatyczne przypisanie aktualnego użytkownika
-        // Formatowanie DataZloWnio tylko jeśli została podana
+        Creator: user?.email || null, // Automatyczne przypisanie aktualnego uÅ¼ytkownika
+        // Formatowanie DataZloWnio tylko jeÅli zostaÅa podana
         DataZloWnio: data.DataZloWnio ? new Date(data.DataZloWnio).toISOString() : null,
         // Formatowanie CreatedTime do jednolitego formatu
         CreatedDate: new Date().toISOString(),
@@ -132,19 +132,19 @@ export function CreateClientModal({ open, onOpenChange, onClientCreated }: Creat
         Pelnomocnictwo: data.Pelnomocnictwo ? "Yes" : "No",
       }
 
-      console.log("Wysyłanie danych klienta:", clientData);
+      console.log("WysyÅanie danych klienta:", clientData);
 
       // Dodanie klienta do bazy danych
-      console.log("Przed wywołaniem addClient...");
+      console.log("Przed wywoÅaniem addClient...");
       const newClient = await addClient(clientData)
-      console.log("Po wywołaniu addClient, rezultat:", newClient);
+      console.log("Po wywoÅaniu addClient, rezultat:", newClient);
 
       if (!newClient) {
         console.error("Nie otrzymano danych nowego klienta");
-        throw new Error("Nie udało się dodać klienta")
+        throw new Error("Nie udaÅo siÄ dodaÄ klienta")
       }
 
-      // Wywołanie callbacka, jeśli został dostarczony
+      // WywoÅanie callbacka, jeÅli zostaÅ dostarczony
       if (onClientCreated) {
         onClientCreated(newClient)
       }
@@ -152,17 +152,17 @@ export function CreateClientModal({ open, onOpenChange, onClientCreated }: Creat
       // Komunikat o powodzeniu
       toast({
         title: "Klient dodany",
-        description: `${data.Name} został pomyślnie dodany.`,
+        description: `${data.Name} zostaÅ pomyÅlnie dodany.`,
       })
 
-      // Resetowanie formularza i zamknięcie modalu
+      // Resetowanie formularza i zamkniÄcie modalu
       form.reset()
       onOpenChange(false)
     } catch (error) {
-      console.error("Szczegółowy błąd podczas dodawania klienta:", error)
+      console.error("SzczegÃ³Åowy bÅÄd podczas dodawania klienta:", error)
       toast({
-        title: "Błąd",
-        description: "Nie udało się dodać klienta. Spróbuj ponownie później.",
+        title: "BÅÄd",
+        description: "Nie udaÅo siÄ dodaÄ klienta. SprÃ³buj ponownie pÃ³Åºniej.",
         variant: "destructive",
       })
     } finally {
@@ -176,7 +176,7 @@ export function CreateClientModal({ open, onOpenChange, onClientCreated }: Creat
         <DialogHeader>
           <DialogTitle>Dodaj nowego klienta</DialogTitle>
           <DialogDescription>
-            Wypełnij formularz, aby dodać nowego klienta. Pola oznaczone * są wymagane.
+            WypeÅnij formularz, aby dodaÄ nowego klienta. Pola oznaczone * sÄ wymagane.
           </DialogDescription>
         </DialogHeader>
 
@@ -187,7 +187,7 @@ export function CreateClientModal({ open, onOpenChange, onClientCreated }: Creat
               name="Name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Imię i nazwisko *</FormLabel>
+                  <FormLabel>ImiÄ i nazwisko *</FormLabel>
                   <FormControl>
                     <Input placeholder="Jan Kowalski" {...field} />
                   </FormControl>
@@ -271,7 +271,7 @@ export function CreateClientModal({ open, onOpenChange, onClientCreated }: Creat
                 name="DataZloWnio"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Data złożenia wniosku</FormLabel>
+                    <FormLabel>Data zÅoÅ¼enia wniosku</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -329,7 +329,7 @@ export function CreateClientModal({ open, onOpenChange, onClientCreated }: Creat
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Wybierz podstawę" />
+                          <SelectValue placeholder="Wybierz podstawÄ" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -393,7 +393,7 @@ export function CreateClientModal({ open, onOpenChange, onClientCreated }: Creat
                           onCheckedChange={field.onChange}
                         />
                       </FormControl>
-                      <FormLabel className="font-normal">Załącznik nr 1</FormLabel>
+                      <FormLabel className="font-normal">ZaÅÄcznik nr 1</FormLabel>
                     </FormItem>
                   )}
                 />
@@ -441,7 +441,7 @@ export function CreateClientModal({ open, onOpenChange, onClientCreated }: Creat
                           onCheckedChange={field.onChange}
                         />
                       </FormControl>
-                      <FormLabel className="font-normal">4 zdjęcia</FormLabel>
+                      <FormLabel className="font-normal">4 zdjÄcia</FormLabel>
                     </FormItem>
                   )}
                 />
@@ -457,7 +457,7 @@ export function CreateClientModal({ open, onOpenChange, onClientCreated }: Creat
                           onCheckedChange={field.onChange}
                         />
                       </FormControl>
-                      <FormLabel className="font-normal">Pełnomocnictwo</FormLabel>
+                      <FormLabel className="font-normal">PeÅnomocnictwo</FormLabel>
                     </FormItem>
                   )}
                 />
