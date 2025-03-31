@@ -1,10 +1,11 @@
+import ReportsPage from "@/components/reports"
 import MainLayout from "@/components/main-layout"
-import Reports from "./reports"
 
-export default function ReportsPage() {
+export default function Reports() {
   return (
     <MainLayout>
-      <Reports />
+      <ReportsPage />
     </MainLayout>
   )
 }
+
