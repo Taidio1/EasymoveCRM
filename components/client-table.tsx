@@ -155,7 +155,7 @@ export default function ClientTable() {
     setIsEditMode(true)
     setIsDetailsModalOpen(true)
   }
-
+  const [clientIdFilter, setClientIdFilter] = useState("")
   // Filtrowanie klientów na podstawie wyszukiwania i statusu
   const filteredClients = clients.filter((client) => {
      const matchesSearch =

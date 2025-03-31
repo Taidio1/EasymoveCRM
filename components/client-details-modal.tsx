@@ -37,9 +37,11 @@ import {
   AlertCircle,
   Plus,
   Loader2,
+  Trash2,
+  Download,
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
-import { type Client, supabase, updateClient, uploadClientDocument } from "@/lib/superbase"
+import { type Client, supabase, updateClient, uploadClientDocument, deleteClientDocument } from "@/lib/superbase"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useAuth } from "@/hooks/use-auth"
 
@@ -376,6 +378,114 @@ export function ClientDetailsModal({
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
+    }
+  };
+
+  // Dodaj funkcję usuwania dokumentu
+  const handleDeleteDocument = async (docUrl: string) => {
+    if (!client) return;
+    
+    setIsUploading(true); // Możemy wykorzystać ten stan do blokowania UI podczas usuwania
+    
+    try {
+      // Wyciągnij ścieżkę pliku z URL
+      const filePath = decodeURIComponent(docUrl.split('/documents/')[1]);
+      
+      // Wywołaj funkcję usuwającą z Supabase
+      const success = await deleteClientDocument(filePath);
+      
+      if (success) {
+        // Aktualizacja obiektu klienta - usunięcie URL z listy dokumentów
+        const currentDocs = client.Doc?.split(',').filter(url => url.trim() !== docUrl.trim()).join(',') || "";
+        
+        // Aktualizacja klienta w bazie danych
+        const updatedClient = await updateClient(client.id, { Doc: currentDocs });
+        
+        // Aktualizacja UI
+        if (onClientUpdated && updatedClient) {
+          onClientUpdated(updatedClient);
+        }
+        
+        toast({
+          title: "Dokument usunięty",
+          description: "Dokument został pomyślnie usunięty."
+        });
+      } else {
+        throw new Error("Nie udało się usunąć dokumentu");
+      }
+    } catch (error) {
+      console.error("Błąd podczas usuwania dokumentu:", error);
+      toast({
+        title: "Błąd",
+        description: "Nie udało się usunąć dokumentu.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Funkcja pomocnicza do pobierania dokumentu
+  const handleDownloadDocument = async (docUrl: string) => {
+    try {
+      setIsUploading(true);
+      
+      // Wyciągnij ścieżkę pliku z URL
+      // Przykład: https://yklzzuoniimpqjqqymlu.supabase.co/storage/v1/object/public/documents/folder/file.pdf
+      // Potrzebujemy części "folder/file.pdf"
+      const publicUrlPart = 'public/documents/';
+      const filePath = docUrl.includes(publicUrlPart) 
+        ? docUrl.split(publicUrlPart)[1] 
+        : docUrl.split('/documents/')[1];
+      
+      if (!filePath) {
+        throw new Error("Nie można wyodrębnić ścieżki pliku z URL");
+      }
+      
+      console.log("Próba pobrania pliku:", filePath);
+      
+      // Pobierz URL do pobrania
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .download(filePath);
+      
+      if (error) {
+        console.error("Błąd Supabase przy pobieraniu pliku:", error);
+        throw new Error(`Błąd pobierania: ${error.message}`);
+      }
+      
+      if (!data) {
+        throw new Error("Brak danych w odpowiedzi");
+      }
+      
+      // Pobierz nazwę pliku
+      const fileName = filePath.split('/').pop() || "dokument.pdf";
+      
+      // Utwórz URL obiektu i inicjuj pobieranie
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      
+      // Posprzątaj
+      URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Pobieranie rozpoczęte",
+        description: "Rozpoczęto pobieranie dokumentu.",
+      });
+    } catch (error) {
+      console.error("Błąd podczas pobierania dokumentu:", error);
+      toast({
+        title: "Błąd",
+        description: `Nie udało się pobrać dokumentu: ${error instanceof Error ? error.message : 'Nieznany błąd'}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -1034,19 +1144,42 @@ export function ClientDetailsModal({
                         <div>
                           <h3 className="text-sm font-medium mb-2">Załączone dokumenty:</h3>
                           <div className="space-y-2">
-                            {client.Doc.split(",").map((doc, index) => (
-                              <div key={index} className="flex items-center gap-2 p-2 border rounded-md">
-                                <FileText className="h-4 w-4 text-muted-foreground" />
-                                <a
-                                  href={doc.trim()}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-sm text-blue-600 hover:underline truncate"
-                                >
-                                  {doc.trim().split("/").pop() || `Dokument ${index + 1}`}
-                                </a>
-                              </div>
-                            ))}
+                            {client.Doc.split(",").map((doc, index) => {
+                              const docUrl = doc.trim();
+                              if (!docUrl) return null; // Pomiń puste wartości
+                              
+                              const fileName = docUrl.split("/").pop() || `Dokument ${index + 1}`;
+                              
+                              return (
+                                <div key={index} className="flex items-center justify-between gap-2 p-2 border rounded-md">
+                                  <div className="flex items-center gap-2 overflow-hidden">
+                                    <FileText className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                                    <span className="text-sm truncate">{fileName}</span>
+                                  </div>
+                                  <div className="flex gap-1 flex-shrink-0">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      onClick={() => handleDownloadDocument(docUrl)}
+                                      title="Pobierz dokument"
+                                      className="h-8 w-8"
+                                    >
+                                      <Download className="h-4 w-4" />
+                                    </Button>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon"
+                                      onClick={() => handleDeleteDocument(docUrl)}
+                                      title="Usuń dokument"
+                                      className="h-8 w-8 text-destructive hover:text-destructive"
+                                      disabled={isUploading}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       ) : (

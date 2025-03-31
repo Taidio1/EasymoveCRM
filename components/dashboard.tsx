@@ -21,6 +21,7 @@ import {
 import { getClients, type Client } from "@/lib/superbase"
 import { toast } from "@/hooks/use-toast"
 import { RoleGuard } from "@/components/role-guard"
+import { CountriesChart } from "./countries-chart"
 
 export default function Dashboard() {
   const [clients, setClients] = useState<Client[]>([])
@@ -119,6 +120,16 @@ export default function Dashboard() {
     client.Status?.toLowerCase() !== "nieaktywny"
   ).length
 
+  useEffect(() => {
+    // Zwiększ opóźnienie renderowania wykresu
+    if (!isLoading && topCountries.length > 0) {
+      setTimeout(() => {
+        setForceUpdate(prev => prev + 1)
+        window.dispatchEvent(new Event('resize'))
+      }, 500) // Zwiększ opóźnienie do 500ms
+    }
+  }, [isLoading, topCountries])
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
@@ -194,39 +205,7 @@ export default function Dashboard() {
                       <p>Ładowanie danych...</p>
                     </div>
                   ) : topCountries.length > 0 ? (
-                    <div className="h-full w-full" key={forceUpdate}>
-                      <Chart
-                        data={topCountries.map((item) => ({
-                          name: item.country,
-                          value: item.count,
-                        }))}
-                        type="bar"
-                      >
-                        <ChartContainer>
-                          <ChartTooltip>
-                            <ChartTooltipContent />
-                          </ChartTooltip>
-                          <ChartGrid />
-                          <ChartXAxis
-                            dataKey="name"
-                            angle={-45}
-                            textAnchor="end"
-                            height={60}
-                            interval={0}
-                          />
-                          <ChartYAxis />
-                          <ChartBar
-                            dataKey="value"
-                            fill="hsl(var(--primary))"
-                            name="Liczba klientów"
-                            radius={[4, 4, 0, 0]}
-                          />
-                          <ChartLegend>
-                            <ChartLegendItem name="Liczba klientów" color="hsl(var(--primary))" />
-                          </ChartLegend>
-                        </ChartContainer>
-                      </Chart>
-                    </div>
+                    <CountriesChart data={topCountries} />
                   ) : (
                     <div className="h-full flex flex-col items-center justify-center gap-2">
                       <Globe className="h-12 w-12 text-muted-foreground" />

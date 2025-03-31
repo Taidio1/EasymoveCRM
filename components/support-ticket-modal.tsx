@@ -50,7 +50,11 @@ const ticketFormSchema = z.object({
 
 type TicketFormValues = z.infer<typeof ticketFormSchema>
 
-export function SupportTicketModal() {
+interface SupportTicketModalProps {
+  isCollapsed?: boolean;
+}
+
+export function SupportTicketModal({ isCollapsed = false }: SupportTicketModalProps) {
   const [open, setOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -95,9 +99,9 @@ export function SupportTicketModal() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" className="w-full justify-start">
-          <HelpCircle className="mr-2 h-4 w-4" />
-          <span>Support</span>
+        <Button variant="outline" className={`w-full justify-start ${isCollapsed && "justify-center"}`}>
+          <HelpCircle size={18} className="mr-2" />
+          {!isCollapsed && <span>Support</span>}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">

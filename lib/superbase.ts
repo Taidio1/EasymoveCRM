@@ -247,7 +247,7 @@ export async function getUserProfile(): Promise<UserProfile | null> {
 }
 
 // Funkcja do wgrywania pliku do bucketu documents
-export async function uploadClientDocument(clientId: string, file: File): Promise<string | null> {
+export async function uploadClientDocument(clientId: string, file: File, clientName?: string): Promise<string | null> {
   try {
     // Sprawdź czy użytkownik jest zalogowany
     const { data: { session } } = await supabase.auth.getSession();
@@ -258,7 +258,10 @@ export async function uploadClientDocument(clientId: string, file: File): Promis
 
     // Generuj nazwę pliku
     const timestamp = Date.now();
-    const fileName = `${clientId}/${timestamp}_${file.name}`;
+    const sanitizedClientName = clientName ? 
+      clientName.replace(/[^a-zA-Z0-9]/g, '_') : 'dokument';
+    const folderPrefix = `${sanitizedClientName}_${clientId}`;
+    const fileName = `${folderPrefix}/${timestamp}_${file.name}`;
 
     // Wgraj plik
     const { data, error } = await supabase
@@ -267,7 +270,7 @@ export async function uploadClientDocument(clientId: string, file: File): Promis
       .upload(fileName, file, {
         cacheControl: '3600',
         upsert: true,
-        contentType: file.type // Dodajemy typ zawartości
+        contentType: file.type
       });
 
     if (error) {
@@ -289,13 +292,18 @@ export async function uploadClientDocument(clientId: string, file: File): Promis
 }
 
 // Funkcja do pobierania listy plików klienta
-export async function getClientDocuments(clientId: string): Promise<Array<{ name: string, url: string, path: string }>> {
+export async function getClientDocuments(clientId: string, clientName?: string): Promise<Array<{ name: string, url: string, path: string }>> {
   try {
+    // Przygotuj prefiks folderu
+    const sanitizedClientName = clientName ? 
+      clientName.replace(/[^a-zA-Z0-9]/g, '_') : 'dokument';
+    const folderPrefix = `${sanitizedClientName}_${clientId}`;
+    
     // Listujemy pliki w folderze klienta
     const { data, error } = await supabase
       .storage
       .from('documents')
-      .list(clientId, {
+      .list(folderPrefix, {
         sortBy: { column: 'created_at', order: 'desc' }
       });
 
@@ -306,15 +314,16 @@ export async function getClientDocuments(clientId: string): Promise<Array<{ name
 
     // Tworzymy listę plików z URL-ami do pobrania
     return data.map(file => {
+      const filePath = `${folderPrefix}/${file.name}`;
       const url = supabase
         .storage
         .from('documents')
-        .getPublicUrl(`${clientId}/${file.name}`).data.publicUrl;
+        .getPublicUrl(filePath).data.publicUrl;
 
       return {
-        name: file.name,
+        name: file.name.replace(/^\d+_/, ''), // Usunięcie przedrostka timestamp
         url: url,
-        path: `${clientId}/${file.name}`
+        path: filePath
       };
     });
   } catch (error) {
