@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -19,8 +19,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "@/hooks/use-toast"
-import { type Client, addClient } from "@/lib/superbase"
+import { type Client, supabase,  addClient } from "@/lib/superbase"
 import { useAuth } from "@/hooks/use-auth"
+import { FileText, Loader2, Plus, Trash2 } from "lucide-react"
 
 // Schemat formularza klienta
 const clientFormSchema = z.object({
@@ -65,6 +66,9 @@ interface CreateClientModalProps {
 export function CreateClientModal({ open, onOpenChange, onClientCreated }: CreateClientModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { user } = useAuth() // Pobieranie informacji o zalogowanym użytkowniku
+  const [documents, setDocuments] = useState<string>("")
+  const [isUploading, setIsUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Inicjalizacja formularza z wartościami domyślnymi
   const form = useForm<ClientFormValues>({
@@ -115,7 +119,7 @@ export function CreateClientModal({ open, onOpenChange, onClientCreated }: Creat
         // Formatowanie CreatedTime do jednolitego formatu
         CreatedDate: new Date().toISOString(),
         TotalSpend: "0",
-        Doc: "",
+        Doc: documents,
         NumerSprawy: null,
         Firma: null,
         Inspektor: "",
@@ -166,6 +170,113 @@ export function CreateClientModal({ open, onOpenChange, onClientCreated }: Creat
       setIsSubmitting(false)
     }
   }
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        
+        if (file.size > 10 * 1024 * 1024) {
+          toast({
+            title: "Błąd",
+            description: `Plik "${file.name}" jest zbyt duży. Maksymalny rozmiar to 10MB.`,
+            variant: "destructive",
+          });
+          continue;
+        }
+
+        const fileType = file.type;
+        const allowedTypes = [
+          'application/pdf', 
+          'application/msword', 
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        ];
+        
+        if (!allowedTypes.includes(fileType)) {
+          toast({
+            title: "Błąd",
+            description: `Plik "${file.name}" ma nieprawidłowy format. Dozwolone formaty to PDF i Word.`,
+            variant: "destructive",
+          });
+          continue;
+        }
+
+        const timestamp = Date.now();
+        const fileName = `${timestamp}_${file.name}`;
+        
+        const { data, error } = await supabase.storage
+          .from('documents')
+          .upload(fileName, file);
+
+        if (error) throw error;
+
+        if (data) {
+          const { data: publicUrlData } = supabase.storage
+            .from('documents')
+            .getPublicUrl(data.path);
+
+          setDocuments(prev => {
+            const newUrl = publicUrlData.publicUrl;
+            return prev ? `${prev},${newUrl}` : newUrl;
+          });
+          
+          toast({
+            title: "Sukces",
+            description: "Dokument został dodany.",
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Błąd podczas uploadu:", error);
+      toast({
+        title: "Błąd",
+        description: "Nie udało się dodać dokumentu.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleDeleteDocument = async (docUrl: string) => {
+    try {
+      const publicUrlPart = 'public/documents/';
+      const filePath = docUrl.includes(publicUrlPart) 
+        ? docUrl.split(publicUrlPart)[1] 
+        : docUrl.split('/documents/')[1];
+
+      const { error } = await supabase.storage
+        .from('documents')
+        .remove([filePath]);
+
+      if (error) throw error;
+
+      setDocuments(prev => {
+        const docs = prev.split(',').filter(url => url.trim() !== docUrl.trim());
+        return docs.join(',');
+      });
+      
+      toast({
+        title: "Sukces",
+        description: "Dokument został usunięty.",
+      });
+    } catch (error) {
+      console.error("Błąd podczas usuwania:", error);
+      toast({
+        title: "Błąd",
+        description: "Nie udało się usunąć dokumentu.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -359,6 +470,70 @@ export function CreateClientModal({ open, onOpenChange, onClientCreated }: Creat
                 </FormItem>
               )}
             />
+
+            <div className="space-y-4">
+              <FormLabel>Dokumenty</FormLabel>
+              <div className="flex items-center gap-2">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  accept=".pdf,.doc,.docx"
+                  multiple
+                />
+                <Button 
+                  type="button"
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Wgrywanie...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Dodaj dokument
+                    </>
+                  )}
+                </Button>
+              </div>
+              
+              {documents && (
+                <div className="mt-4 space-y-2">
+                  {documents.split(",").map((doc, index) => {
+                    const docUrl = doc.trim();
+                    if (!docUrl) return null;
+                    
+                    const fileName = docUrl.split("/").pop() || `Dokument ${index + 1}`;
+                    
+                    return (
+                      <div key={index} className="flex items-center justify-between gap-2 p-2 border rounded-md">
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          <FileText className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                          <span className="text-sm max-w-[250px] truncate">{fileName}</span>
+                        </div>
+                        <Button 
+                          type="button"
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => handleDeleteDocument(docUrl)}
+                          title="Usuń dokument"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          disabled={isUploading}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
             <div className="space-y-2">
                <FormLabel>Dokumenty</FormLabel>
