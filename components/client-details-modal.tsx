@@ -59,12 +59,7 @@ const clientFormSchema = z.object({
   Phone: z.string().optional(),
   Adres: z.string().nullable().optional(),
   StatusPla: z.string().optional(),
-  Email: z
-    .string()
-    .email({
-      message: "Wprowadź prawidłowy adres email.",
-    })
-    .optional(),
+  Email: z.string().optional(),
   Birthday: z.string().optional(),
   Notes: z.string().optional(),
   Creator: z.string().optional(),
@@ -1055,6 +1050,14 @@ export function ClientDetailsModal({
                         <div>
                           <p className="text-sm font-medium">Data złożenia wniosku</p>
                           <p className="text-sm text-muted-foreground">{formatDate(client.DataZloWnio)}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium">Data wydania wniosku</p>
+                          <p className="text-sm text-muted-foreground">{formatDate(client.DataWydWni)}</p>
                         </div>
                       </div>
 

@@ -1,123 +1,162 @@
 # React CRM System v4
 
-A modern Customer Relationship Management (CRM) system built with React, Next.js, and Supabase.
+Nowoczesny system CRM (Customer Relationship Management) zbudowany przy użyciu React, Next.js i Supabase.
 
-## Features
+## Funkcjonalności
 
-- **Dashboard**: View business metrics, revenue charts, client growth and upcoming tasks
-- **Client Management**: Add, edit, view, and delete client records
-- **Data Visualization**: Charts showing revenue trends and client growth
-- **Authentication**: User roles (Admin, Boss, Employee) with appropriate permissions and secure login
-- **Responsive Design**: Works seamlessly on mobile, tablet, and desktop devices
+- **Dashboard**: Podgląd metryk biznesowych, wykresów przychodów, wzrostu liczby klientów i nadchodzących zadań
+- **Zarządzanie Klientami**: 
+  - Dodawanie, edycja, podgląd i usuwanie rekordów klientów
+  - Zaawansowane zarządzanie dokumentami klientów
+  - System statusów i śledzenia postępu spraw
+  - Notatki i uwagi do klientów
+- **Zarządzanie Dokumentami**:
+  - Upload dokumentów w formatach PDF i Word
+  - Automatyczne nazewnictwo plików z timestampem
+  - Podgląd i pobieranie dokumentów
+  - Bezpieczne przechowywanie w Supabase Storage
+  - Limit wielkości plików (10MB)
+- **Śledzenie Procesu**:
+  - Status sprawy
+  - Daty złożenia i odbioru dokumentów
+  - Podstawa legalnego pobytu
+  - Cel pobytu
+- **Data Visualization**: Wykresy pokazujące trendy przychodów i wzrost liczby klientów
+- **Autentykacja**: Role użytkowników (Admin, Boss, Employee) z odpowiednimi uprawnieniami
+- **Responsywny Design**: Działa płynnie na urządzeniach mobilnych, tabletach i desktopach
 
-## Tech Stack
+## Stack Technologiczny
 
 - **Frontend**: React 19, Next.js 15
 - **UI Components**: Shadcn UI, Radix UI, Lucide React icons
 - **Styling**: Tailwind CSS
-- **State Management**: React Hooks
-- **Forms**: React Hook Form with Zod validation
-- **Database**: Supabase (PostgreSQL)
-- **Authentication**: Supabase Auth with secure session management
-- **Charts**: Recharts
-- **Notifications**: Toast notifications
+- **Zarządzanie Stanem**: React Hooks
+- **Formularze**: React Hook Form z walidacją Zod
+- **Baza Danych**: Supabase (PostgreSQL)
+- **Storage**: Supabase Storage dla dokumentów
+- **Autentykacja**: Supabase Auth z bezpiecznym zarządzaniem sesją
+- **Wykresy**: Recharts
+- **Powiadomienia**: Toast notifications
 
-## Prerequisites
+## Wymagania
 
-- Node.js 18 or higher
-- npm or pnpm package manager
-- Supabase account and project
+- Node.js 18 lub wyższy
+- npm lub pnpm package manager
+- Konto i projekt Supabase
 
-## Setup and Installation
+## Instalacja
 
-1. Clone the repository
+1. Klonowanie repozytorium
 ```bash
 git clone https://github.com/yourusername/react-crm.git
 cd react-crm
 ```
 
-2. Install dependencies
+2. Instalacja zależności
 ```bash
 npm install
-# or
+# lub
 pnpm install
 ```
 
-3. Create a `.env` file in the root directory with your Supabase credentials:
-```
+3. Utworzenie pliku `.env` w katalogu głównym z danymi Supabase:
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
 
-4. Run the development server
+
+4. Uruchomienie serwera deweloperskiego
 ```bash
 npm run dev
-# or
+# lub
 pnpm dev
 ```
 
-5. Open [http://localhost:3000](http://localhost:3000) in your browser
+5. Otwórz [http://localhost:3000](http://localhost:3000) w przeglądarce
 
-## Database Structure
+## Struktura Bazy Danych
 
-The application uses a Supabase backend with the following tables:
+Aplikacja wykorzystuje backend Supabase z następującymi tabelami:
 
-- **clients**: Stores client information including contact details, case numbers, and document status
-- **users**: Manages user authentication and role-based permissions
+- **clients**: Przechowuje informacje o klientach, w tym:
+  - Dane kontaktowe
+  - Numery spraw
+  - Status dokumentów
+  - Daty procesowe
+  - URLe do dokumentów
+  - Notatki i uwagi
+- **users**: Zarządza autentykacją użytkowników i uprawnieniami bazującymi na rolach
 
-## Authentication
+## System Dokumentów
 
-The application implements a secure authentication system using Supabase Auth:
+Aplikacja zawiera zaawansowany system zarządzania dokumentami:
 
-- **Login Screen**: A secure login interface for users to authenticate
-- **Protected Routes**: All application routes are protected and require authentication
-- **Role-Based Access**: Different functionality based on user roles (Admin, Boss, Employee)
-- **Profile Management**: View and edit user profile information
-- **Secure Logout**: Ability to securely end the session
+### Przechowywanie
+- Dokumenty przechowywane są w bucket'cie 'documents' w Supabase Storage
+- Automatyczne nazewnictwo plików w formacie: `timestamp_nazwapliku.rozszerzenie`
+- Obsługiwane formaty: PDF, DOC, DOCX
+- Limit rozmiaru pliku: 10MB
 
-## Usage
+### Funkcjonalności
+- Upload wielu plików jednocześnie
+- Podgląd listy dokumentów
+- Pobieranie dokumentów
+- Usuwanie dokumentów
+- Walidacja typów i rozmiaru plików
+- Zarządzanie dokumentami zarówno przy tworzeniu jak i edycji klienta
+
+## Autentykacja
+
+System implementuje bezpieczną autentykację przy użyciu Supabase Auth:
+
+- **Ekran logowania**: Bezpieczny interfejs logowania
+- **Chronione ścieżki**: Wszystkie ścieżki aplikacji wymagają autentykacji
+- **Dostęp bazujący na rolach**: Różne funkcjonalności dla różnych ról (Admin, Boss, Employee)
+- **Zarządzanie profilem**: Podgląd i edycja informacji profilowych
+- **Bezpieczne wylogowanie**: Możliwość bezpiecznego zakończenia sesji
+
+## Użytkowanie
 
 ### Dashboard
 
-The dashboard provides an overview of key business metrics:
-- Total revenue
-- Active clients
-- Pending invoices
-- Active projects
-- Revenue charts
-- Client growth statistics
-- Recent activities and upcoming tasks
+Dashboard zapewnia przegląd kluczowych metryk biznesowych:
+- Całkowity przychód
+- Aktywni klienci
+- Oczekujące faktury
+- Aktywne projekty
+- Wykresy przychodów
+- Statystyki wzrostu liczby klientów
+- Ostatnie aktywności i nadchodzące zadania
 
-### Clients Management
+### Zarządzanie Klientami
 
-The clients page allows you to:
-- View all clients in a sortable and filterable table
-- Search for clients by name, email, case number, or phone
-- Filter clients by status
-- Add new clients via a modal form
-- View detailed client information
-- Update client details
-- Delete client records
+Strona klientów pozwala na:
+- Przeglądanie wszystkich klientów w sortowanej i filtrowalnej tabeli
+- Wyszukiwanie klientów po nazwie, emailu, numerze sprawy lub telefonie
+- Filtrowanie klientów po statusie
+- Dodawanie nowych klientów przez formularz modalny
+- Przeglądanie szczegółowych informacji o kliencie
+- Aktualizację danych klienta
+- Usuwanie rekordów klientów
+- Zarządzanie dokumentami klienta
 
 ## Deployment
 
-This application can be deployed on Vercel, Netlify, or any other platform that supports Next.js applications.
+Aplikacja może być wdrożona na Vercel, Netlify lub innej platformie wspierającej aplikacje Next.js.
 
 ```bash
 npm run build
-# or
+# lub
 pnpm build
 ```
 
-## Contributing
+## Kontrybucje
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+1. Zforkuj repozytorium
+2. Utwórz branch z funkcjonalnością (`git checkout -b feature/amazing-feature`)
+3. Commituj zmiany (`git commit -m 'Add some amazing feature'`)
+4. Pushuj do brancha (`git push origin feature/amazing-feature`)
+5. Otwórz Pull Request
 
-## License
+## Licencja
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
-
+Projekt jest licencjonowany pod licencją MIT - szczegóły w pliku LICENSE.

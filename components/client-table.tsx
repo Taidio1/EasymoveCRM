@@ -171,7 +171,7 @@ export default function ClientTable() {
     const matchesStatus = statusFilter === "all" || client.Status?.toLowerCase() === statusFilter.toLowerCase()
 
     // Sprawdź czy klient powinien być wyświetlany zgodnie z filtrem "zakończonych"
-    const matchesCompletedFilter = showCompleted || client.Status?.toLowerCase() !== "zakończony"
+    const matchesCompletedFilter = showCompleted || client.Status !== "Zakończony"
 
     return matchesSearch && matchesStatus && matchesCompletedFilter
   })
@@ -208,10 +208,10 @@ export default function ClientTable() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Wszystkie statusy</SelectItem>
-              <SelectItem value="aktywny">Aktywny</SelectItem>
+              <SelectItem value="zaplanowany">Zaplanowany</SelectItem>
               <SelectItem value="w trakcie">W trakcie</SelectItem>
-              <SelectItem value="zakończony">zakończony</SelectItem>
-              <SelectItem value="nieaktywny">Nieaktywny</SelectItem>
+              <SelectItem value="Zakończony">Zakończony</SelectItem>
+              <SelectItem value="zawieszony">Zawieszony</SelectItem>
             </SelectContent>
           </Select>
 
@@ -290,12 +290,14 @@ export default function ClientTable() {
                       <TableCell>
                       <Badge
                         className={
-                           client.Status?.toLowerCase() === "aktywny"
+                           client.Status?.toLowerCase() === "zaplanowany"
                             ? "bg-green-100 text-green-800"
-                            : client.Status?.toLowerCase() === "nieaktywny" || client.Status?.toLowerCase() === "zakończony"
+                            : client.Status === "Zakończony"
                             ? "bg-red-100 text-red-800"
-                             : client.Status?.toLowerCase() === "w trakcie"
+                            : client.Status?.toLowerCase() === "w trakcie"
                             ? "bg-blue-100 text-blue-800"
+                            : client.Status?.toLowerCase() === "zawieszony"
+                            ? "bg-yellow-100 text-yellow-800"
                             : "bg-gray-100 text-gray-800"
                          }
                       >

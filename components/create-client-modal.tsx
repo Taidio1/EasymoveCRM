@@ -37,12 +37,7 @@ const clientFormSchema = z.object({
   Phone: z.string().optional(),
   Adres: z.string().nullable().optional(),
   StatusPla: z.string().optional(),
-  Email: z
-    .string()
-    .email({
-      message: "Wprowadź prawidłowy adres email.",
-    })
-    .optional(),
+  Email: z.string().optional(),
   Birthday: z.string().optional(),
   Notes: z.string().optional(),
   Creator: z.string().optional(),
