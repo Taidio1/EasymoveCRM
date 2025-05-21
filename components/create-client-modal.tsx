@@ -70,7 +70,7 @@ export function CreateClientModal({ open, onOpenChange, onClientCreated }: Creat
     resolver: zodResolver(clientFormSchema),
     defaultValues: {
       Name: "",
-      Status: "Aktywny",
+      Status: "W trakcie",
       CelPobytu: "",
       PodLegPob: "",
       KrajPoch: "",

@@ -153,7 +153,7 @@ export default function Sidebar() {
       </ScrollArea>
 
       <div className="p-3 border-t space-y-2">
-        <SupportTicketModal />
+        <SupportTicketModal isCollapsed={!isOpen}  />
         <Button variant="ghost" className={`w-full justify-start ${!isOpen && "justify-center"}`} onClick={handleLogout}>
           <LogOut size={18} className="mr-2" />
           {isOpen && <span>Logout</span>}

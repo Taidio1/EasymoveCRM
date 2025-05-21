@@ -23,16 +23,39 @@ import { type Client, getClients, deleteClient } from "@/lib/superbase"
 
 // Dodaj funkcję formatującą datę na początku komponentu, po deklaracji stanów
 // Funkcja do formatowania daty bez strefy czasowej
-const formatDate = (dateString: string | null | undefined) => {
+const formatDate = (dateString: string | null | undefined): string => {
   if (!dateString) return "Brak danych";
-  // Sprawdzenie czy data zawiera format GMT
-  if (dateString.includes("GMT")) {
-    // Usuń informację o strefie czasowej
-    return dateString.split(" (")[0];
+
+  // Obsługa formatu dd/mm/yyyy hh:mm
+  const [datePart, timePart] = dateString.split(' ');
+  const [day, month, year] = datePart.split('/').map(Number);
+
+  if (!day || !month || !year) return "Nieprawidłowy format daty";
+
+  let hours = 0;
+  let minutes = 0;
+
+  if (timePart) {
+    const [h, m] = timePart.split(':').map(Number);
+    hours = h || 0;
+    minutes = m || 0;
   }
 
-  return dateString;
+  const date = new Date(year, month - 1, day, hours, minutes);
+
+  const dd = String(date.getDate()).padStart(2, '0');
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const yyyy = date.getFullYear();
+
+  if (hours !== 0 || minutes !== 0) {
+    const hh = String(hours).padStart(2, '0');
+    const min = String(minutes).padStart(2, '0');
+    return `${dd}-${mm}-${yyyy} ${hh}:${min}`;
+  }
+
+  return `${dd}-${mm}-${yyyy}`;
 };
+
 
 export default function ClientTable() {
   const [searchTerm, setSearchTerm] = useState("")
