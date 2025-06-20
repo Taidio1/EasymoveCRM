@@ -21,39 +21,57 @@ import { ClientDetailsModal } from "./client-details-modal"
 import { toast } from "@/hooks/use-toast"
 import { type Client, getClients, deleteClient } from "@/lib/superbase"
 
-// Dodaj funkcję formatującą datę na początku komponentu, po deklaracji stanów
-// Funkcja do formatowania daty bez strefy czasowej
+// Funkcja do formatowania daty i godziny z timestamp with time zone
 const formatDate = (dateString: string | null | undefined): string => {
   if (!dateString) return "Brak danych";
 
-  // Obsługa formatu dd/mm/yyyy hh:mm
-  const [datePart, timePart] = dateString.split(' ');
-  const [day, month, year] = datePart.split('/').map(Number);
+  try {
+    // Parsowanie ISO timestamp z timezone
+    const date = new Date(dateString);
+    
+    // Sprawdzenie czy data jest prawidłowa
+    if (isNaN(date.getTime())) {
+      return "Nieprawidłowy format daty";
+    }
 
-  if (!day || !month || !year) return "Nieprawidłowy format daty";
+    // Konwersja na czas polski (Europe/Warsaw)
+    const polishTime = date.toLocaleString('pl-PL', {
+      timeZone: 'Europe/Warsaw',
+      day: '2-digit',
+      month: '2-digit', 
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
 
-  let hours = 0;
-  let minutes = 0;
+    // Sprawdzenie czy ma godziny inne niż 00:00
+    const hours = date.toLocaleString('pl-PL', { 
+      timeZone: 'Europe/Warsaw', 
+      hour: '2-digit', 
+      hour12: false 
+    });
+    const minutes = date.toLocaleString('pl-PL', { 
+      timeZone: 'Europe/Warsaw', 
+      minute: '2-digit' 
+    });
 
-  if (timePart) {
-    const [h, m] = timePart.split(':').map(Number);
-    hours = h || 0;
-    minutes = m || 0;
+    // Formatowanie zgodne z oryginalnym widokiem (DD-MM-YYYY HH:MM)
+    const [datePart, timePart] = polishTime.split(', ');
+    const [day, month, year] = datePart.split('.');
+    
+    // Jeśli ma godziny inne niż 00:00, pokaż je
+    if (hours !== '00' || minutes !== '00') {
+      return `${day}-${month}-${year} ${timePart}`;
+    }
+    
+    // Jeśli tylko data (bez godzin), pokaż tylko datę
+    return `${day}-${month}-${year}`;
+
+  } catch (error) {
+    console.error('Błąd formatowania daty:', error);
+    return "Błąd formatowania";
   }
-
-  const date = new Date(year, month - 1, day, hours, minutes);
-
-  const dd = String(date.getDate()).padStart(2, '0');
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const yyyy = date.getFullYear();
-
-  if (hours !== 0 || minutes !== 0) {
-    const hh = String(hours).padStart(2, '0');
-    const min = String(minutes).padStart(2, '0');
-    return `${dd}-${mm}-${yyyy} ${hh}:${min}`;
-  }
-
-  return `${dd}-${mm}-${yyyy}`;
 };
 
 

@@ -15,7 +15,9 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useTheme } from "next-themes"
 import { Check, Save } from "lucide-react"
-import { getUserProfile } from "@/lib/superbase"
+import { getUserProfile, type UserProfile } from "@/lib/superbase"
+import { AvatarUpload } from "@/components/avatar-upload"
+import { useAuth } from "@/hooks/use-auth"
 
 // Form schema for profile settings
 const profileFormSchema = z.object({
@@ -48,7 +50,8 @@ const appearanceFormSchema = z.object({
 export default function Settings() {
   const { setTheme } = useTheme()
   const [isSaved, setIsSaved] = useState(false)
-  const [userProfile, setUserProfile] = useState<{ first_name: string | null, last_name: string | null, email: string } | null>(null)
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+  const { refreshUser } = useAuth()
 
   // Profile form
   const profileForm = useForm<z.infer<typeof profileFormSchema>>({
@@ -117,6 +120,18 @@ export default function Settings() {
     setTimeout(() => setIsSaved(false), 3000)
   }
 
+  // Handle avatar change
+  const handleAvatarChange = async (newAvatarUrl: string | null) => {
+    if (userProfile) {
+      setUserProfile({
+        ...userProfile,
+        avatar_url: newAvatarUrl
+      })
+      // Odśwież dane użytkownika w kontekście auth
+      await refreshUser()
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
@@ -134,47 +149,73 @@ export default function Settings() {
 
         {/* Profile Settings */}
         <TabsContent value="profile">
-          <Card>
-            <CardHeader>
-              <CardTitle>Profile Settings</CardTitle>
-              <CardDescription>Your profile information</CardDescription>
-            </CardHeader>
-            <Form {...profileForm}>
-              <form>
-                <CardContent className="space-y-4">
-                  <FormField
-                    control={profileForm.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Name</FormLabel>
-                        <FormControl>
-                          <Input {...field} disabled />
-                        </FormControl>
-                        <FormDescription>Your display name</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+          <div className="space-y-6">
+            {/* Avatar Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Zdjęcie profilowe</CardTitle>
+                <CardDescription>Ustaw swoje zdjęcie profilowe</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AvatarUpload 
+                  currentAvatarUrl={userProfile?.avatar_url}
+                  onAvatarChange={handleAvatarChange}
+                  size="lg"
+                />
+              </CardContent>
+            </Card>
 
-                  <FormField
-                    control={profileForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input {...field} disabled />
-                        </FormControl>
-                        <FormDescription>Your email address</FormDescription>
-                        <FormMessage />
-                      </FormItem>
+            {/* Profile Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Informacje profilu</CardTitle>
+                <CardDescription>Twoje podstawowe informacje</CardDescription>
+              </CardHeader>
+              <Form {...profileForm}>
+                <form>
+                  <CardContent className="space-y-4">
+                    <FormField
+                      control={profileForm.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Imię i nazwisko</FormLabel>
+                          <FormControl>
+                            <Input {...field} disabled />
+                          </FormControl>
+                          <FormDescription>Twoje wyświetlane imię i nazwisko</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={profileForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input {...field} disabled />
+                          </FormControl>
+                          <FormDescription>Twój adres email</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {userProfile?.role && (
+                      <div className="space-y-2">
+                        <Label>Rola</Label>
+                        <Input value={userProfile.role} disabled />
+                        <p className="text-sm text-muted-foreground">Twoja rola w systemie</p>
+                      </div>
                     )}
-                  />
-                </CardContent>
-              </form>
-            </Form>
-          </Card>
+                  </CardContent>
+                </form>
+              </Form>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* Notification Settings */}

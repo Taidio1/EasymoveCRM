@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Users, CreditCard, DollarSign, Activity, BarChart, LineChart, Globe } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Users, CreditCard, DollarSign, Activity, Globe, ExternalLink } from "lucide-react"
 import {
   Chart,
   ChartContainer,
@@ -18,10 +19,13 @@ import {
   ChartLine,
   ChartBar,
 } from "@/components/ui/chart"
-import { getClients, type Client } from "@/lib/superbase"
+import { getClients, getQuarterlyClientData, type Client, type QuarterlyData } from "@/lib/superbase"
 import { toast } from "@/hooks/use-toast"
 import { RoleGuard } from "@/components/role-guard"
 import { CountriesChart } from "./countries-chart"
+import { QuarterlyGrowthChart } from "./quarterly-growth-chart"
+import { ClientDetailsModal } from "./client-details-modal"
+import { WebsiteAnalytics } from "./website-analytics"
 
 export default function Dashboard() {
   const [clients, setClients] = useState<Client[]>([])
@@ -30,6 +34,10 @@ export default function Dashboard() {
   const [recentClients, setRecentClients] = useState<Client[]>([])
   const [forceUpdate, setForceUpdate] = useState(0)
   const [upcomingExpirations, setUpcomingExpirations] = useState<Client[]>([])
+  const [quarterlyData, setQuarterlyData] = useState<QuarterlyData[]>([])
+  const [quarterlyLoading, setQuarterlyLoading] = useState(true)
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null)
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
 
   // Pobieranie klientów z Supabase
   useEffect(() => {
@@ -44,8 +52,8 @@ export default function Dashboard() {
         const countriesMap = new Map<string, number>()
 
         data.forEach(client => {
-          if (client.KrajPoch) {
-            const country = client.KrajPoch
+          if (client.country_name) {
+            const country = client.country_name
             countriesMap.set(country, (countriesMap.get(country) || 0) + 1)
           }
         })
@@ -71,13 +79,17 @@ export default function Dashboard() {
         console.log("Ostatnio dodani klienci:", sortedClients)
         setRecentClients(sortedClients)
 
-        // Pobieranie klientów z najbliższymi datami zakończenia legalnego pobytu
-        const currentYear = new Date().getFullYear()
+        // Pobieranie klientów z DataZakLegPob w ciągu najbliższych 6 miesięcy
+        const today = new Date()
+        const sixMonthsFromNow = new Date()
+        sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6)
+        
         const clientsWithExpiration = data
           .filter(client => {
             if (!client.DataZakLegPob) return false
             const expirationDate = new Date(client.DataZakLegPob)
-            return expirationDate.getFullYear() === currentYear
+            // Filtruj klientów których data zakończenia jest w ciągu najbliższych 6 miesięcy
+            return expirationDate >= today && expirationDate <= sixMonthsFromNow
           })
           .sort((a, b) => {
             const dateA = new Date(a.DataZakLegPob!).getTime()
@@ -86,7 +98,7 @@ export default function Dashboard() {
           })
           .slice(0, 5) // Pobierz 5 najbliższych dat
 
-        console.log("Klienci z najbliższymi datami zakończenia w roku:", currentYear, clientsWithExpiration)
+        console.log("Klienci z datami zakończenia w ciągu 6 miesięcy:", clientsWithExpiration)
         setUpcomingExpirations(clientsWithExpiration)
 
         // Wymuszenie przerenderowania po załadowaniu danych
@@ -109,6 +121,29 @@ export default function Dashboard() {
     fetchClients()
   }, [])
 
+  // Pobieranie danych kwartalnych
+  useEffect(() => {
+    async function fetchQuarterlyData() {
+      setQuarterlyLoading(true)
+      try {
+        const data = await getQuarterlyClientData()
+        console.log("Dane kwartalne:", data)
+        setQuarterlyData(data)
+      } catch (error) {
+        console.error("Błąd podczas pobierania danych kwartalnych:", error)
+        toast({
+          title: "Błąd",
+          description: "Nie udało się pobrać danych kwartalnych. Spróbuj ponownie później.",
+          variant: "destructive",
+        })
+      } finally {
+        setQuarterlyLoading(false)
+      }
+    }
+
+    fetchQuarterlyData()
+  }, [])
+
   // Monitorowanie stanu topCountries
   useEffect(() => {
     console.log("Stan topCountries został zaktualizowany:", topCountries)
@@ -119,6 +154,27 @@ export default function Dashboard() {
     client.Status?.toLowerCase() !== "zakończony" &&
     client.Status?.toLowerCase() !== "nieaktywny"
   ).length
+
+  // Funkcja do otwierania szczegółów klienta
+  const handleOpenClientDetails = (client: Client) => {
+    setSelectedClient(client)
+    setIsDetailsModalOpen(true)
+  }
+
+  // Funkcja do aktualizacji klienta w liście
+  const handleClientUpdated = (updatedClient: Client) => {
+    setClients(prevClients => 
+      prevClients.map(client => 
+        client.id === updatedClient.id ? updatedClient : client
+      )
+    )
+    // Aktualizuj też upcomingExpirations jeśli klient tam jest
+    setUpcomingExpirations(prevExpirations =>
+      prevExpirations.map(client =>
+        client.id === updatedClient.id ? updatedClient : client
+      )
+    )
+  }
 
   useEffect(() => {
     // Zwiększ opóźnienie renderowania wykresu
@@ -140,8 +196,7 @@ export default function Dashboard() {
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Przegląd</TabsTrigger>
-          <TabsTrigger value="analytics">Analityka</TabsTrigger>
-          <TabsTrigger value="reports">Raporty</TabsTrigger>
+          <TabsTrigger value="website-analytics">Analityka Strony</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -219,27 +274,21 @@ export default function Dashboard() {
             <Card className="col-span-3">
               <CardHeader>
                 <CardTitle>Wzrost liczby klientów</CardTitle>
-                <CardDescription>Aktywni vs nowi klienci</CardDescription>
+                <CardDescription>Kwartalne dane nowych klientów (na podstawie dat złożenia wniosków)</CardDescription>
               </CardHeader>
               <CardContent className="h-80">
-                <div className="h-full w-full">
-                  <Chart type="bar">
-                    <ChartContainer>
-                      <ChartTooltip>
-                        <ChartTooltipContent />
-                      </ChartTooltip>
-                      <ChartGrid />
-                      <ChartXAxis dataKey="month" />
-                      <ChartYAxis />
-                      <ChartBar dataKey="active" fill="hsl(var(--primary))" name="Aktywni klienci" />
-                      <ChartBar dataKey="new" fill="hsl(var(--primary) / 0.5)" name="Nowi klienci" />
-                      <ChartLegend>
-                        <ChartLegendItem name="Aktywni klienci" color="hsl(var(--primary))" />
-                        <ChartLegendItem name="Nowi klienci" color="hsl(var(--primary) / 0.5)" />
-                      </ChartLegend>
-                    </ChartContainer>
-                  </Chart>
-                </div>
+                {quarterlyLoading ? (
+                  <div className="h-full flex items-center justify-center">
+                    <p>Ładowanie danych kwartalnych...</p>
+                  </div>
+                ) : quarterlyData.length > 0 ? (
+                  <QuarterlyGrowthChart data={quarterlyData} />
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center gap-2">
+                    <Activity className="h-12 w-12 text-muted-foreground" />
+                    <p className="text-muted-foreground">Brak danych kwartalnych</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -299,7 +348,7 @@ export default function Dashboard() {
             <Card className="col-span-2">
               <CardHeader>
                 <CardTitle>Nadchodzące Zakończenie Legalnego Pobytu</CardTitle>
-                <CardDescription>Klienci z kończącym się legalnym pobytem w {new Date().getFullYear()}</CardDescription>
+                <CardDescription>Klienci z kończącym się legalnym pobytem w ciągu najbliższych 6 miesięcy</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -333,14 +382,25 @@ export default function Dashboard() {
                           <div className="flex-1 space-y-1">
                             <div className="flex items-center justify-between">
                               <p className="text-sm font-medium leading-none">{client.Name}</p>
-                              <div className={`text-xs px-2 py-1 rounded-full ${
-                                diffDays < 0
-                                  ? "bg-destructive/10 text-destructive"
-                                  : diffDays <= 7
-                                    ? "bg-warning/10 text-warning"
-                                    : "bg-primary/10 text-primary"
-                              }`}>
-                                {timeLabel}
+                              <div className="flex items-center gap-2">
+                                <div className={`text-xs px-2 py-1 rounded-full ${
+                                  diffDays < 0
+                                    ? "bg-destructive/10 text-destructive"
+                                    : diffDays <= 7
+                                      ? "bg-warning/10 text-warning"
+                                      : "bg-primary/10 text-primary"
+                                }`}>
+                                  {timeLabel}
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleOpenClientDetails(client)}
+                                  className="h-6 px-2 text-xs"
+                                >
+                                  <ExternalLink className="h-3 w-3 mr-1" />
+                                  Szczegóły
+                                </Button>
                               </div>
                             </div>
                             <p className="text-sm text-muted-foreground">
@@ -352,7 +412,7 @@ export default function Dashboard() {
                     })
                   ) : (
                     <div className="py-8 flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                      <p>Brak nadchodzących zadań w tym roku</p>
+                      <p>Brak nadchodzących zakończeń w ciągu najbliższych 6 miesięcy</p>
                     </div>
                   )}
                 </div>
@@ -361,40 +421,18 @@ export default function Dashboard() {
           </div>
         </TabsContent>
 
-        <TabsContent value="analytics" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Zaawansowana analityka</CardTitle>
-              <CardDescription>Szczegółowa analiza wydajności biznesu</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[400px] flex items-center justify-center border rounded-md">
-                <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                  <BarChart size={48} />
-                  <p>Zaawansowana analityka pojawi się tutaj</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="reports" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Raporty biznesowe</CardTitle>
-              <CardDescription>Generuj i przeglądaj raporty biznesowe</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[400px] flex items-center justify-center border rounded-md">
-                <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                  <LineChart size={48} />
-                  <p>Raporty pojawią się tutaj</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="website-analytics" className="space-y-4">
+          <WebsiteAnalytics />
         </TabsContent>
       </Tabs>
+
+      {/* Modal szczegółów klienta */}
+      <ClientDetailsModal
+        open={isDetailsModalOpen}
+        onOpenChange={setIsDetailsModalOpen}
+        client={selectedClient}
+        onClientUpdated={handleClientUpdated}
+      />
     </div>
   )
 }

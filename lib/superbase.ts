@@ -23,6 +23,7 @@ export interface UserProfile {
   first_name: string | null;
   last_name: string | null;
   role: string | null;
+  avatar_url: string | null; // URL do zdjęcia profilowego
 }
 
 // Metoda logowania
@@ -97,35 +98,36 @@ export interface Client {
   Status: string
   CelPobytu: string | null
   PodLegPob: string | null
-  KrajPoch: string | null
   Phone: string | null
   StatusPla: string | null
-  DataZloWnio: string | null
+  DataZloWnio: string | null // timestamp with time zone jako ISO string
   Email: string | null
   Birthday: string | null
   Notes: string | null
   Creator: string | null
-  CreatedDate: string | null
+  CreatedDate: string | null // timestamp with time zone jako ISO string
   TotalSpend: string | null
   Doc: string | null
   NumerSprawy: string | null
   Inspektor: string | null
-  DataWydWni: string | null
-  DataOdbKartyPob: string | null
-  DataOdbDecyzji: string | null
-  DataZakLegPob: string | null
+  DataWydWni: string | null // date jako ISO string
+  DataOdbKartyPob: string | null // date jako ISO string
+  DataOdbDecyzji: string | null // date jako ISO string
+  DataZakLegPob: string | null // date jako ISO string
   Firma: string | null
-  FormWni: string | null
-  ZalNrJed: string | null
-  KopiaPasz: string | null
-  ZalBlue: string | null
-  CzteZdjecia: string | null
-  Pelnomocnictwo: string | null
+  FormWni: boolean | null
+  ZalNrJed: boolean | null
+  KopiaPasz: boolean | null
+  ZalBlue: boolean | null
+  CzteZdjecia: boolean | null
+  Pelnomocnictwo: boolean | null
+  country_id: number | null // foreign key do tabeli countries
+  country_name: string | null // nazwa kraju z tabeli countries
 }
 
 // Funkcje do interakcji z bazą danych
 
-// Pobieranie wszystkich klientów
+// Pobieranie wszystkich klientów z nazwami krajów
 export async function getClients(): Promise<Client[]> {
   try {
     console.log("Próba pobrania klientów...");
@@ -134,7 +136,12 @@ export async function getClients(): Promise<Client[]> {
 
     const { data, error } = await supabase
       .from("clients")
-      .select("*");
+      .select(`
+        *,
+        countries!country_id (
+          name
+        )
+      `);
 
     if (error) {
       console.error("Szczegółowy błąd Supabase:", error);
@@ -148,10 +155,16 @@ export async function getClients(): Promise<Client[]> {
       console.warn("Brak danych w tabeli 'clients'");
     }
 
-    console.log("Pobrano rekordów:", data?.length || 0);
-    console.log("Pierwsze rekordy:", data?.slice(0, 3));
+    // Transformuj dane żeby dodać country_name do głównego obiektu
+    const transformedData = data.map(client => ({
+      ...client,
+      country_name: client.countries?.name || null
+    }));
 
-    return data || [];
+    console.log("Pobrano rekordów:", transformedData?.length || 0);
+    console.log("Pierwsze rekordy:", transformedData?.slice(0, 3));
+
+    return transformedData || [];
   } catch (catchError) {
     console.error("Błąd catch:", catchError);
     return [];
@@ -225,10 +238,10 @@ export async function getUserProfile(): Promise<UserProfile | null> {
   
   if (!user) return null;
   
-  // Pobierz dane profilu
+  // Pobierz dane profilu z avatar_url
   const { data: profile, error } = await supabase
     .from('profiles')
-    .select('first_name, last_name, role')
+    .select('first_name, last_name, role, avatar_url')
     .eq('id', user.id)
     .single();
   
@@ -242,8 +255,121 @@ export async function getUserProfile(): Promise<UserProfile | null> {
     email: user.email || '',
     first_name: profile?.first_name || null,
     last_name: profile?.last_name || null,
-    role: profile?.role || null
+    role: profile?.role || null,
+    avatar_url: profile?.avatar_url || null
   };
+}
+
+// Funkcja do wgrywania avatara użytkownika
+export async function uploadUserAvatar(file: File): Promise<string | null> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.error('Użytkownik nie jest zalogowany');
+      return null;
+    }
+
+    // Sprawdź typ i rozmiar pliku
+    if (!file.type.startsWith('image/')) {
+      console.error('Plik musi być obrazem');
+      return null;
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      console.error('Plik jest za duży (max 5MB)');
+      return null;
+    }
+
+    // Utwórz nazwę pliku
+    const fileExtension = file.name.split('.').pop();
+    const fileName = `${user.id}.${fileExtension}`;
+
+    // Usuń stary avatar jeśli istnieje
+    await supabase.storage.from('avatarurl').remove([fileName]);
+
+    // Wgraj nowy avatar do bucket'a avatarurl
+    const { data, error } = await supabase.storage
+      .from('avatarurl')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: true,
+        contentType: file.type
+      });
+
+    if (error) {
+      console.error('Błąd podczas wgrywania avatara:', error);
+      return null;
+    }
+
+    // Pobierz publiczny URL
+    const { data: urlData } = supabase.storage
+      .from('avatarurl')
+      .getPublicUrl(fileName);
+
+    const avatarUrl = urlData?.publicUrl || null;
+
+    // Zaktualizuj profil użytkownika
+    if (avatarUrl) {
+      console.log('Próba aktualizacji profilu dla użytkownika:', user.id);
+      console.log('Avatar URL:', avatarUrl);
+      
+      const { data: updateData, error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: avatarUrl })
+        .eq('id', user.id)
+        .select();
+
+      if (updateError) {
+        console.error('Błąd podczas aktualizacji profilu:', updateError);
+        console.error('Szczegóły błędu:', updateError.details);
+        console.error('Kod błędu:', updateError.code);
+        return null;
+      }
+      
+      console.log('Profil zaktualizowany pomyślnie:', updateData);
+    }
+
+    return avatarUrl;
+  } catch (err) {
+    console.error('Nieoczekiwany błąd podczas wgrywania avatara:', err);
+    return null;
+  }
+}
+
+// Funkcja do usuwania avatara
+export async function deleteUserAvatar(): Promise<boolean> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+
+    // Pobierz obecny avatar URL
+    const profile = await getUserProfile();
+    if (!profile?.avatar_url) return true; // Już nie ma avatara
+
+    // Wyciągnij nazwę pliku z URL
+    const url = new URL(profile.avatar_url);
+    const pathParts = url.pathname.split('/');
+    const fileName = pathParts[pathParts.length - 1];
+
+    // Usuń plik z bucket'a avatarurl
+    await supabase.storage.from('avatarurl').remove([fileName]);
+
+    // Zaktualizuj profil (usuń URL)
+    const { error } = await supabase
+      .from('profiles')
+      .update({ avatar_url: null })
+      .eq('id', user.id);
+
+    if (error) {
+      console.error('Błąd podczas usuwania avatara z profilu:', error);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error('Błąd podczas usuwania avatara:', err);
+    return false;
+  }
 }
 
 // Funkcja do wgrywania pliku do bucketu documents
@@ -349,6 +475,224 @@ export async function deleteClientDocument(filePath: string): Promise<boolean> {
   } catch (error) {
     console.error('Błąd podczas usuwania pliku:', error);
     return false;
+  }
+}
+
+// Interfejs dla danych kwartalnych
+export interface QuarterlyData {
+  quarter: string; // np. "2024 Q1"
+  quarterNum: number; // 1, 2, 3, 4
+  year: number;
+  clientCount: number;
+}
+
+// Funkcja do pobierania danych kwartalnych
+export async function getQuarterlyClientData(): Promise<QuarterlyData[]> {
+  try {
+    const { data, error } = await supabase
+      .rpc('get_quarterly_client_stats');
+
+    if (error) {
+      // Fallback: jeśli RPC nie istnieje, użyj zwykłego query
+      console.log('RPC nie istnieje, używam zwykłego query');
+      const { data: manualData, error: manualError } = await supabase
+        .from('clients')
+        .select('DataZloWnio')
+        .not('DataZloWnio', 'is', null);
+
+      if (manualError) {
+        console.error('Błąd podczas pobierania danych kwartalnych:', manualError);
+        return [];
+      }
+
+      // Ręczne grupowanie po kwartałach
+      const quarterlyMap = new Map<string, number>();
+      
+      manualData.forEach(client => {
+        if (client.DataZloWnio) {
+          const date = new Date(client.DataZloWnio);
+          const year = date.getFullYear();
+          const quarter = Math.ceil((date.getMonth() + 1) / 3);
+          const quarterKey = `${year}-Q${quarter}`;
+          
+          quarterlyMap.set(quarterKey, (quarterlyMap.get(quarterKey) || 0) + 1);
+        }
+      });
+
+      // Konwersja do oczekiwanego formatu i sortowanie
+      const result: QuarterlyData[] = Array.from(quarterlyMap.entries())
+        .map(([quarterKey, count]) => {
+          const [yearStr, quarterStr] = quarterKey.split('-Q');
+          const year = parseInt(yearStr);
+          const quarterNum = parseInt(quarterStr);
+          
+          return {
+            quarter: `${year} Q${quarterNum}`,
+            quarterNum,
+            year,
+            clientCount: count
+          };
+        })
+        .sort((a, b) => {
+          if (a.year !== b.year) return a.year - b.year;
+          return a.quarterNum - b.quarterNum;
+        });
+
+      return result;
+    }
+
+    return data || [];
+  } catch (err) {
+    console.error('Błąd podczas pobierania danych kwartalnych:', err);
+    return [];
+  }
+}
+
+// Interfejs dla kraju
+export interface Country {
+  id: number;
+  name: string;
+}
+
+// Interfejs dla formularza klienta
+export interface ClientFormData {
+  Name: string;
+  Email: string;
+  Phone: string;
+  CelPobytu: string;
+  country_id: number;
+}
+
+// Pobieranie wszystkich krajów
+export async function getCountries(): Promise<Country[]> {
+  try {
+    const { data, error } = await supabase
+      .from('countries')
+      .select('id, name')
+      .order('name');
+
+    if (error) {
+      console.error('Błąd podczas pobierania krajów:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Błąd podczas pobierania krajów:', error);
+    return [];
+  }
+}
+
+// Dodawanie nowego klienta przez formularz publiczny
+export async function addClientFromForm(clientData: ClientFormData): Promise<{ success: boolean; client?: any; error?: string }> {
+  try {
+    console.log("Próba dodania klienta z formularza:", clientData);
+
+    // Przygotuj dane klienta z domyślnymi wartościami
+    const newClient = {
+      Name: clientData.Name,
+      Email: clientData.Email,
+      Phone: clientData.Phone,
+      CelPobytu: clientData.CelPobytu,
+      country_id: clientData.country_id,
+      DataZloWnio: new Date().toISOString().split('T')[0], // Automatycznie dzisiejsza data
+      Status: 'W trakcie', // Domyślny status dla nowych wniosków
+      Creator: 'Formularz internetowy',
+      CreatedDate: new Date().toISOString(),
+      // Pozostałe pola pozostają null
+      PodLegPob: null,
+      StatusPla: null,
+      Birthday: null,
+      Notes: 'Dodano przez formularz internetowy',
+      TotalSpend: null,
+      Doc: null,
+      NumerSprawy: null,
+      Inspektor: null,
+      DataWydWni: null,
+      DataOdbKartyPob: null,
+      DataOdbDecyzji: null,
+      DataZakLegPob: null,
+      Firma: null,
+      FormWni: false,
+      ZalNrJed: false,
+      KopiaPasz: false,
+      ZalBlue: false,
+      CzteZdjecia: false,
+      Pelnomocnictwo: false
+    };
+
+    const { data, error } = await supabase
+      .from('clients')
+      .insert([newClient])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Błąd Supabase podczas dodawania klienta:', error);
+      return { 
+        success: false, 
+        error: `Błąd bazy danych: ${error.message}` 
+      };
+    }
+
+    console.log('Klient dodany pomyślnie:', data);
+    return { 
+      success: true, 
+      client: data 
+    };
+
+  } catch (error) {
+    console.error('Błąd podczas dodawania klienta z formularza:', error);
+    return { 
+      success: false, 
+      error: 'Wystąpił nieoczekiwany błąd. Spróbuj ponownie.' 
+    };
+  }
+}
+
+// Funkcja do wgrywania plików przez formularz publiczny (bez autoryzacji)
+export async function uploadFormDocument(file: File, clientId: string): Promise<string | null> {
+  try {
+    // Sprawdź typ i rozmiar pliku
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+    if (!allowedTypes.includes(file.type)) {
+      console.error('Nieprawidłowy typ pliku');
+      return null;
+    }
+
+    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+      console.error('Plik jest za duży (max 10MB)');
+      return null;
+    }
+
+    // Generuj nazwę pliku
+    const timestamp = Date.now();
+    const fileExtension = file.name.split('.').pop();
+    const fileName = `form_uploads/${clientId}/${timestamp}_${file.name}`;
+
+    // Wgraj plik do bucket'a documents
+    const { data, error } = await supabase.storage
+      .from('documents')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: true,
+        contentType: file.type
+      });
+
+    if (error) {
+      console.error('Błąd podczas wgrywania pliku:', error);
+      return null;
+    }
+
+    // Pobierz publiczny URL
+    const { data: urlData } = supabase.storage
+      .from('documents')
+      .getPublicUrl(fileName);
+
+    return urlData?.publicUrl || null;
+  } catch (err) {
+    console.error('Błąd podczas wgrywania pliku z formularza:', err);
+    return null;
   }
 }
 

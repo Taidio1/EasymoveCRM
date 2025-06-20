@@ -16,6 +16,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useTheme } from "next-themes"
 import { useAuth } from "@/hooks/use-auth"
+import Link from "next/link"
 
 export default function TopNavbar() {
   const { toggle, isOpen } = useSidebar()
@@ -91,26 +92,33 @@ export default function TopNavbar() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
                 <Avatar>
-                  <AvatarImage src="/placeholder.svg" alt="User" />
+                  <AvatarImage src={user?.avatar_url || "/placeholder.svg"} alt="User" />
                   <AvatarFallback>{user ? getInitials(user.email) : "U"}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>
-                {user?.email}
+                {user?.first_name && user?.last_name 
+                  ? `${user.first_name} ${user.last_name}`
+                  : user?.email
+                }
                 <div className="text-xs font-normal text-muted-foreground mt-1">
-                  {user?.role || "UÅ¼ytkownik"}
+                  {user?.role || "Użytkownik"}
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <User size={16} className="mr-2" />
-                Profil
+              <DropdownMenuItem asChild>
+                <Link href="/settings">
+                  <User size={16} className="mr-2" />
+                  Profil
+                </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Settings size={16} className="mr-2" />
-                Ustawienia
+              <DropdownMenuItem asChild>
+                <Link href="/settings">
+                  <Settings size={16} className="mr-2" />
+                  Ustawienia
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => logout()}>
