@@ -98,7 +98,9 @@ export interface Client {
   Status: string
   CelPobytu: string | null
   PodLegPob: string | null
+  KrajPoch: string | null
   Phone: string | null
+  Adres: string | null
   StatusPla: string | null
   DataZloWnio: string | null // timestamp with time zone jako ISO string
   Email: string | null

@@ -217,17 +217,34 @@ export function ClientDetailsModal({
     setIsSubmitting(true)
 
     try {
-      // Przygotuj dane z poprawną obsługą wartości "none"
+      // Przygotuj dane z poprawną obsługą wartości "none" i pustych stringów
+      const { StatusPla, ...dataWithoutStatusPla } = data;
       const processedData = {
-        ...data,
+        ...dataWithoutStatusPla,
         CelPobytu: data.CelPobytu === "none" ? null : data.CelPobytu,
         PodLegPob: data.PodLegPob === "none" ? null : data.PodLegPob,
-        FormWni: data.FormWni ? "Yes" : "No",
-        ZalNrJed: data.ZalNrJed ? "Yes" : "No",
-        KopiaPasz: data.KopiaPasz ? "Yes" : "No",
-        ZalBlue: data.ZalBlue ? "Yes" : "No",
-        CzteZdjecia: data.CzteZdjecia ? "Yes" : "No",
-        Pelnomocnictwo: data.Pelnomocnictwo ? "Yes" : "No",
+        // Konwersja pustych stringów na null dla pól dat
+        DataZloWnio: data.DataZloWnio || null,
+        DataWydWni: data.DataWydWni || null,
+        DataOdbKartyPob: data.DataOdbKartyPob || null,
+        DataOdbDecyzji: data.DataOdbDecyzji || null,
+        DataZakLegPob: data.DataZakLegPob || null,
+        // Konwersja pustych stringów na null dla innych pól
+        Email: data.Email || null,
+        Phone: data.Phone || null,
+        KrajPoch: data.KrajPoch || null,
+        Birthday: data.Birthday || null,
+        Notes: data.Notes || null,
+        Inspektor: data.Inspektor || null,
+        NumerSprawy: data.NumerSprawy || null,
+        Adres: data.Adres || null,
+        // Pola boolean pozostają bez zmian
+        FormWni: data.FormWni,
+        ZalNrJed: data.ZalNrJed,
+        KopiaPasz: data.KopiaPasz,
+        ZalBlue: data.ZalBlue,
+        CzteZdjecia: data.CzteZdjecia,
+        Pelnomocnictwo: data.Pelnomocnictwo,
       }
 
       console.log("Wysyłanie danych do aktualizacji:", processedData);
@@ -241,10 +258,22 @@ export function ClientDetailsModal({
       });
 
       // Aktualizacja klienta w bazie danych
-      const updatedClient = await updateClient(client.id, processedData)
+      console.log("Dane przed wysłaniem do updateClient:", processedData);
+      console.log("Client ID:", client.id);
+      
+      let updatedClient;
+      try {
+        updatedClient = await updateClient(client.id, processedData);
+      } catch (updateError) {
+        console.error("Szczegółowy błąd updateClient:", updateError);
+        console.error("Kod błędu:", (updateError as any)?.code);
+        console.error("Wiadomość błędu:", (updateError as any)?.message);
+        console.error("Szczegóły błędu:", (updateError as any)?.details);
+        throw new Error(`Błąd aktualizacji: ${(updateError as any)?.message || 'Nieznany błąd'}`);
+      }
 
       if (!updatedClient) {
-        throw new Error("Nie udało się zaktualizować klienta")
+        throw new Error("Nie udało się zaktualizować klienta - brak danych z serwera")
       }
 
       console.log("Zaktualizowany klient otrzymany z bazy:", updatedClient);
@@ -259,15 +288,9 @@ export function ClientDetailsModal({
 
       // Wywołanie callbacka, jeśli został dostarczony
       if (onClientUpdated) {
-        // Poprawić niezgodności typów w normalizedClient
+        // Przekaż zaktualizowany klient bez dodatkowych konwersji
         const normalizedClient = {
           ...updatedClient,
-          FormWni: data.FormWni ? "Yes" : "No",
-          ZalNrJed: data.ZalNrJed ? "Yes" : "No",
-          KopiaPasz: data.KopiaPasz ? "Yes" : "No",
-          ZalBlue: data.ZalBlue ? "Yes" : "No",
-          CzteZdjecia: data.CzteZdjecia ? "Yes" : "No",
-          Pelnomocnictwo: data.Pelnomocnictwo ? "Yes" : "No",
         };
         
         onClientUpdated(normalizedClient);
