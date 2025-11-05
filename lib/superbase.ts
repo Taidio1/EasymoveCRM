@@ -8,6 +8,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error("Brakuje zmiennych środowiskowych Supabase. Sprawdź plik .env")
 }
 
+// Utworzenie klienta Supabase - musi być przed użyciem w funkcjach
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // Typy dla użytkowników
 export interface User {
@@ -87,9 +89,6 @@ export async function checkUserAccess(requiredRoles: string[]): Promise<boolean>
   
   return requiredRoles.includes(user.role)
 }
-
-// Utworzenie klienta Supabase
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // Typy danych dla klienta
 export interface Client {
@@ -236,9 +235,17 @@ export async function deleteClient(id: string): Promise<boolean> {
 
 // Funkcja pobierająca pełny profil użytkownika
 export async function getUserProfile(): Promise<UserProfile | null> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
   
-  if (!user) return null;
+  if (authError) {
+    console.error("Błąd podczas pobierania użytkownika z auth:", authError);
+    return null;
+  }
+  
+  if (!user) {
+    console.log("Brak zalogowanego użytkownika");
+    return null;
+  }
   
   // Pobierz dane profilu z avatar_url
   const { data: profile, error } = await supabase
@@ -247,9 +254,58 @@ export async function getUserProfile(): Promise<UserProfile | null> {
     .eq('id', user.id)
     .single();
   
+  // Jeśli profil nie istnieje, utwórz go z podstawowymi danymi
   if (error) {
-    console.error("Błąd podczas pobierania profilu:", error);
-    return null;
+    console.log("Profil nie istnieje lub błąd podczas pobierania:", error.code, error.message);
+    
+    // Jeśli to błąd "PGRST116" (not found), utwórz profil
+    if (error.code === 'PGRST116') {
+      console.log("Tworzenie nowego profilu dla użytkownika:", user.id);
+      
+      const { error: insertError } = await supabase
+        .from('profiles')
+        .insert({
+          id: user.id,
+          first_name: null,
+          last_name: null,
+          role: user.user_metadata?.role || 'pracownik',
+          avatar_url: null
+        });
+      
+      if (insertError) {
+        console.error("Błąd podczas tworzenia profilu:", insertError);
+        // Zwróć podstawowy profil mimo błędu tworzenia
+        return {
+          id: user.id,
+          email: user.email || '',
+          first_name: null,
+          last_name: null,
+          role: user.user_metadata?.role || null,
+          avatar_url: null
+        };
+      }
+      
+      // Zwróć nowo utworzony profil
+      return {
+        id: user.id,
+        email: user.email || '',
+        first_name: null,
+        last_name: null,
+        role: user.user_metadata?.role || 'pracownik',
+        avatar_url: null
+      };
+    }
+    
+    // Dla innych błędów, zwróć podstawowy profil z danych auth
+    console.warn("Nie można pobrać profilu, zwracam podstawowy profil:", error);
+    return {
+      id: user.id,
+      email: user.email || '',
+      first_name: null,
+      last_name: null,
+      role: user.user_metadata?.role || null,
+      avatar_url: null
+    };
   }
   
   return {

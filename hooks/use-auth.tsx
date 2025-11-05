@@ -52,19 +52,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Funkcja logowania - zaktualizowana
   const login = async (email: string, password: string) => {
     try {
+      console.log("Próba logowania dla:", email);
+      
       const { error } = await signIn({ email, password })
       
       if (error) {
+        console.error("Błąd logowania Supabase:", error);
         toast({
           title: "Błąd logowania",
-          description: error.message,
+          description: error.message || "Nieprawidłowy email lub hasło",
           variant: "destructive",
         })
         return false
       }
       
+      console.log("Logowanie przez Supabase Auth zakończone sukcesem");
+      
       // Pobieramy pełny profil użytkownika po zalogowaniu
       const userProfile = await getUserProfile()
+      
+      if (!userProfile) {
+        console.error("Nie można pobrać profilu użytkownika po zalogowaniu");
+        toast({
+          title: "Błąd logowania",
+          description: "Nie można pobrać danych użytkownika. Spróbuj ponownie.",
+          variant: "destructive",
+        })
+        return false
+      }
+      
+      console.log("Profil użytkownika pobrany:", userProfile);
       setUser(userProfile)
       
       toast({
@@ -77,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error("Błąd podczas logowania:", error)
       toast({
         title: "Błąd logowania",
-        description: "Wystąpił nieoczekiwany błąd podczas logowania.",
+        description: error instanceof Error ? error.message : "Wystąpił nieoczekiwany błąd podczas logowania.",
         variant: "destructive",
       })
       return false

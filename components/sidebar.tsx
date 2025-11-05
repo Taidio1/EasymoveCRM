@@ -18,6 +18,7 @@ import {
   FileText,
   HelpCircle,
   LogOut,
+  Calendar,
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { cn } from "@/lib/utils"
@@ -52,6 +53,11 @@ const navSections: NavSection[] = [
         title: "Reports",
         href: "/reports",
         icon: FileText,
+      },
+      {
+        title: "Calendar",
+        href: "/calendar",
+        icon: Calendar,
       },
     ],
   },
