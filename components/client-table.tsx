@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   DropdownMenu,
@@ -17,7 +18,6 @@ import { ChevronLeft, ChevronRight, MoreHorizontal, Plus, Search, RefreshCw, Loa
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CreateClientModal } from "./create-client-modal"
-import { ClientDetailsModal } from "./client-details-modal"
 import { toast } from "@/hooks/use-toast"
 import { type Client, getClients, deleteClient } from "@/lib/superbase"
 
@@ -76,15 +76,13 @@ const formatDate = (dateString: string | null | undefined): string => {
 
 
 export default function ClientTable() {
+const router = useRouter()
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [clients, setClients] = useState<Client[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showCompleted, setShowCompleted] = useState(false)
-  const [isEditMode, setIsEditMode] = useState(false)
 
   // Pobieranie klientów z Supabase
   useEffect(() => {
@@ -131,33 +129,9 @@ export default function ClientTable() {
     setClients((prevClients) => [newClient, ...prevClients])
   }
 
-  // Obsługa wyświetlania szczegółów klienta
-  const handleViewDetails = (client: Client) => {
-    setSelectedClient(client)
-    setIsEditMode(false)
-    setIsDetailsModalOpen(true)
-  }
-
-  // Obsługa aktualizacji klienta
-  const handleClientUpdated = (updatedClient: Client) => {
-    console.log("Klient przed aktualizacją w tabeli:", selectedClient);
-    console.log("Zaktualizowany klient przekazany do tabeli:", updatedClient);
-    console.log("Status dokumentów klienta:", {
-      FormWni: updatedClient.FormWni,
-      ZalNrJed: updatedClient.ZalNrJed,
-      KopiaPasz: updatedClient.KopiaPasz,
-      ZalBlue: updatedClient.ZalBlue,
-      CzteZdjecia: updatedClient.CzteZdjecia,
-      Pelnomocnictwo: updatedClient.Pelnomocnictwo,
-    });
-    setClients((prevClients) => prevClients.map((client) => {
-      if (client.id === updatedClient.id) {
-        console.log("Aktualizacja klienta w tabeli:", client.Name);
-        return updatedClient;
-      }
-      return client;
-    }));
-    setSelectedClient(updatedClient);
+// Obsługa kliknięcia w wiersz - nawigacja do strony szczegółów
+  const handleRowClick = (clientId: string) => {
+    router.push(`/clients/${clientId}`)
   }
 
   // Obsługa usuwania klienta
@@ -190,13 +164,7 @@ export default function ClientTable() {
     }
   }
 
-  // Obsługa edycji klienta
-  const handleEdit = (client: Client) => {
-    setSelectedClient(client)
-    setIsEditMode(true)
-    setIsDetailsModalOpen(true)
-  }
-  const [clientIdFilter, setClientIdFilter] = useState("")
+const [clientIdFilter, setClientIdFilter] = useState("")
   // Filtrowanie klientów na podstawie wyszukiwania i statusu
   const filteredClients = clients.filter((client) => {
      const matchesSearch =
@@ -280,19 +248,11 @@ export default function ClientTable() {
         </Button>
       </div>
 
-      {/* Modalne okno tworzenia klienta */}
+{/* Modalne okno tworzenia klienta */}
       <CreateClientModal
         open={isCreateModalOpen}
         onOpenChange={setIsCreateModalOpen}
         onClientCreated={handleClientCreated}
-      />
-
-      {/* Modalne okno szczegółów klienta */}
-      <ClientDetailsModal
-        open={isDetailsModalOpen}
-        onOpenChange={setIsDetailsModalOpen}
-        client={selectedClient}
-        onClientUpdated={handleClientUpdated}
       />
 
       <Card>
@@ -308,13 +268,13 @@ export default function ClientTable() {
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
+<TableRow>
                   <TableHead>Imię i nazwisko</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="hidden md:table-cell">Cel Pobytu</TableHead>
                   <TableHead className="hidden md:table-cell">NumerSprawy</TableHead>
                    <TableHead className="hidden md:table-cell">Data Złożenia Wniosku</TableHead>
-                  <TableHead className="text-right">Akcje</TableHead>
+                  <TableHead className="text-right w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -324,9 +284,13 @@ export default function ClientTable() {
                       Nie znaleziono klientów. Spróbuj dostosować kryteria wyszukiwania.
                     </TableCell>
                   </TableRow>
-                ) : (
+) : (
                   paginatedClients.map((client) => (
-                    <TableRow key={client.id}>
+                    <TableRow 
+                      key={client.id}
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => handleRowClick(client.id)}
+                    >
                        <TableCell className="font-medium">{client.Name || "Brak danych"}</TableCell>
                       <TableCell>
                       <Badge
@@ -348,7 +312,7 @@ export default function ClientTable() {
                       <TableCell className="hidden md:table-cell">{client.CelPobytu || "Brak danych"}</TableCell>
                       <TableCell className="hidden md:table-cell">{client.NumerSprawy || "Brak danych"}</TableCell>
                       <TableCell className="hidden md:table-cell">{formatDate(client.DataZloWnio)}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                              <Button variant="ghost" size="icon">
@@ -357,9 +321,6 @@ export default function ClientTable() {
                            </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Akcje</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                             <DropdownMenuItem onClick={() => handleViewDetails(client)}>Szczegóły</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleEdit(client)}>Edytuj</DropdownMenuItem>
                             <DropdownMenuSeparator />
                            <DropdownMenuItem
                               className="text-destructive"
