@@ -507,16 +507,18 @@ export default function ClientDetailsPage() {
             <TabsTrigger value="notes">Notatki</TabsTrigger>
           </TabsList>
           
-          {/* Zakładka Szczegóły */}
-          <TabsContent value="details" className="mt-4">
-            <Card>
+{/* Zakładka Szczegóły */}
+          <TabsContent value="details" className="mt-4 space-y-4">
+            {/* Sekcja 1: Dane personalne */}
+<Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg">
-                  {isEditMode ? "Edycja informacji" : "Informacje o kliencie"}
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  {isEditMode ? "Edycja danych personalnych" : "Dane personalne"}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {isEditMode ? (
+{isEditMode ? (
                   <Form {...form}>
                     <form className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -529,31 +531,6 @@ export default function ClientDetailsPage() {
                               <FormControl>
                                 <Input {...field} />
                               </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name="Status"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Status</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Wybierz status" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="Aktywny">Aktywny</SelectItem>
-                                  <SelectItem value="Nieaktywny">Nieaktywny</SelectItem>
-                                  <SelectItem value="W trakcie">W trakcie</SelectItem>
-                                  <SelectItem value="Zakończony">Zakończony</SelectItem>
-                                  <SelectItem value="Zawieszony">Zawieszony</SelectItem>
-                                </SelectContent>
-                              </Select>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -589,6 +566,20 @@ export default function ClientDetailsPage() {
                         
                         <FormField
                           control={form.control}
+                          name="Birthday"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Data urodzenia</FormLabel>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
                           name="KrajPoch"
                           render={({ field }) => (
                             <FormItem>
@@ -603,10 +594,10 @@ export default function ClientDetailsPage() {
                         
                         <FormField
                           control={form.control}
-                          name="Birthday"
+                          name="Firma"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Data urodzenia</FormLabel>
+                              <FormLabel>Firma</FormLabel>
                               <FormControl>
                                 <Input {...field} />
                               </FormControl>
@@ -614,8 +605,102 @@ export default function ClientDetailsPage() {
                             </FormItem>
                           )}
                         />
-                        
+                      </div>
+                    </form>
+                  </Form>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">Imię i nazwisko</p>
+                        <p className="text-sm text-muted-foreground">{client.Name || "-"}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">Email</p>
+                        <p className="text-sm text-muted-foreground">{client.Email || "-"}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">Telefon</p>
+                        <p className="text-sm text-muted-foreground">{client.Phone || "-"}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">Data urodzenia</p>
+                        <p className="text-sm text-muted-foreground">{client.Birthday || "-"}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Globe className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">Kraj pochodzenia</p>
+                        <p className="text-sm text-muted-foreground">{client.KrajPoch || "-"}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Briefcase className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">Firma</p>
+                        <p className="text-sm text-muted-foreground">{client.Firma || "-"}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            
+            {/* Sekcja 2: Informacje o sprawie */}
+<Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  {isEditMode ? "Edycja informacji o sprawie" : "Informacje o sprawie"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isEditMode ? (
+                  <Form {...form}>
+                    <form className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField
+                          control={form.control}
+                          name="Status"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Status</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Wybierz status" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="Aktywny">Aktywny</SelectItem>
+                                  <SelectItem value="Nieaktywny">Nieaktywny</SelectItem>
+                                  <SelectItem value="W trakcie">W trakcie</SelectItem>
+                                  <SelectItem value="Zakończony">Zakończony</SelectItem>
+                                  <SelectItem value="Zawieszony">Zawieszony</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+<FormField
                           control={form.control}
                           name="NumerSprawy"
                           render={({ field }) => (
@@ -769,50 +854,10 @@ export default function ClientDetailsPage() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
+                      <Badge className="h-4 w-4 text-muted-foreground" />
                       <div>
-                        <p className="text-sm font-medium">Imię i nazwisko</p>
-                        <p className="text-sm text-muted-foreground">{client.Name || "-"}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Email</p>
-                        <p className="text-sm text-muted-foreground">{client.Email || "-"}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Telefon</p>
-                        <p className="text-sm text-muted-foreground">{client.Phone || "-"}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Data urodzenia</p>
-                        <p className="text-sm text-muted-foreground">{client.Birthday || "-"}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <Globe className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Kraj pochodzenia</p>
-                        <p className="text-sm text-muted-foreground">{client.KrajPoch || "-"}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <Briefcase className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Firma</p>
-                        <p className="text-sm text-muted-foreground">{client.Firma || "-"}</p>
+                        <p className="text-sm font-medium">Status</p>
+                        <p className="text-sm text-muted-foreground">{client.Status || "-"}</p>
                       </div>
                     </div>
                     
@@ -979,67 +1024,196 @@ export default function ClientDetailsPage() {
                     </div>
                   )}
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                    <div className="flex items-center gap-2">
-                      <FileCheck className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Formularz wniosku</p>
-                        <p className="text-sm text-muted-foreground">
-                          {isYes(client.FormWni) ? "Tak" : "Nie"}
-                        </p>
+{isEditMode ? (
+                    <Form {...form}>
+                      <div className="space-y-2 mt-6">
+                        <FormLabel>Status dokumentów</FormLabel>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          <FormField
+                            control={form.control}
+                            name="FormWni"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                <FormControl>
+                                  <Checkbox 
+                                    checked={field.value} 
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel className="font-normal cursor-pointer">
+                                    Formularz wniosku
+                                  </FormLabel>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={form.control}
+                            name="ZalNrJed"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                <FormControl>
+                                  <Checkbox 
+                                    checked={field.value} 
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel className="font-normal cursor-pointer">
+                                    Załącznik nr jedności
+                                  </FormLabel>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={form.control}
+                            name="KopiaPasz"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                <FormControl>
+                                  <Checkbox 
+                                    checked={field.value} 
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel className="font-normal cursor-pointer">
+                                    Kopia paszportu
+                                  </FormLabel>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={form.control}
+                            name="ZalBlue"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                <FormControl>
+                                  <Checkbox 
+                                    checked={field.value} 
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel className="font-normal cursor-pointer">
+                                    Załącznik Blue
+                                  </FormLabel>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={form.control}
+                            name="CzteZdjecia"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                <FormControl>
+                                  <Checkbox 
+                                    checked={field.value} 
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel className="font-normal cursor-pointer">
+                                    Cztery zdjęcia
+                                  </FormLabel>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={form.control}
+                            name="Pelnomocnictwo"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                <FormControl>
+                                  <Checkbox 
+                                    checked={field.value} 
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel className="font-normal cursor-pointer">
+                                    Pełnomocnictwo
+                                  </FormLabel>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                    </Form>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                      <div className="flex items-center gap-2">
+                        <FileCheck className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium">Formularz wniosku</p>
+                          <p className="text-sm text-muted-foreground">
+                            {isYes(client.FormWni) ? "Tak" : "Nie"}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <FileCheck className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium">Załącznik nr jedności</p>
+                          <p className="text-sm text-muted-foreground">
+                            {isYes(client.ZalNrJed) ? "Tak" : "Nie"}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <FileCheck className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium">Kopia paszportu</p>
+                          <p className="text-sm text-muted-foreground">
+                            {isYes(client.KopiaPasz) ? "Tak" : "Nie"}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <FileCheck className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium">Załącznik Blue</p>
+                          <p className="text-sm text-muted-foreground">
+                            {isYes(client.ZalBlue) ? "Tak" : "Nie"}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <FileCheck className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium">Cztery zdjęcia</p>
+                          <p className="text-sm text-muted-foreground">
+                            {isYes(client.CzteZdjecia) ? "Tak" : "Nie"}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <FileCheck className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium">Pełnomocnictwo</p>
+                          <p className="text-sm text-muted-foreground">
+                            {isYes(client.Pelnomocnictwo) ? "Tak" : "Nie"}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <FileCheck className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Załącznik nr jedności</p>
-                        <p className="text-sm text-muted-foreground">
-                          {isYes(client.ZalNrJed) ? "Tak" : "Nie"}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <FileCheck className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Kopia paszportu</p>
-                        <p className="text-sm text-muted-foreground">
-                          {isYes(client.KopiaPasz) ? "Tak" : "Nie"}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <FileCheck className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Załącznik Blue</p>
-                        <p className="text-sm text-muted-foreground">
-                          {isYes(client.ZalBlue) ? "Tak" : "Nie"}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <FileCheck className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Cztery zdjęcia</p>
-                        <p className="text-sm text-muted-foreground">
-                          {isYes(client.CzteZdjecia) ? "Tak" : "Nie"}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <FileCheck className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Pełnomocnictwo</p>
-                        <p className="text-sm text-muted-foreground">
-                          {isYes(client.Pelnomocnictwo) ? "Tak" : "Nie"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
