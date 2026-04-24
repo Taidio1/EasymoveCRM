@@ -6,6 +6,7 @@ import { useState, useEffect } from "react"
 import Sidebar from "@/components/sidebar"
 import TopNavbar from "@/components/top-navbar"
 import { useSidebar } from "@/components/sidebar-provider"
+import { CommandMenu } from "@/components/command-menu"
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const { isOpen } = useSidebar()
@@ -31,6 +32,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           </div>
         </main>
       </div>
+      <CommandMenu />
     </div>
   )
 }
