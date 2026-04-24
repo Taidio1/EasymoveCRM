@@ -27,6 +27,7 @@ import {
 import { useAuth } from "@/hooks/use-auth"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
+import { getClients, type Client } from "@/lib/superbase"
 
 const navItems = [
   { title: "Pulpit", href: "/", icon: LayoutDashboard },
@@ -40,6 +41,33 @@ export default function Sidebar() {
   const pathname = usePathname()
   const { isOpen, toggle } = useSidebar()
   const { logout, user } = useAuth()
+  const [upcomingTasks, setUpcomingTasks] = useState<Client[]>([])
+
+  useEffect(() => {
+    async function fetchUpcoming() {
+      try {
+        const data = await getClients()
+        // Filter clients with upcoming legal stay expiration (next 30 days)
+        const today = new Date()
+        const nextMonth = new Date()
+        nextMonth.setDate(today.getDate() + 30)
+        
+        const upcoming = data
+          .filter(c => {
+            if (!c.DataZakLegPob) return false
+            const d = new Date(c.DataZakLegPob)
+            return d >= today && d <= nextMonth
+          })
+          .sort((a, b) => new Date(a.DataZakLegPob!).getTime() - new Date(b.DataZakLegPob!).getTime())
+          .slice(0, 3)
+          
+        setUpcomingTasks(upcoming)
+      } catch (err) {
+        console.error("Error fetching sidebar data:", err)
+      }
+    }
+    fetchUpcoming()
+  }, [])
 
   const handleLogout = async () => {
     await logout()
@@ -134,24 +162,32 @@ export default function Sidebar() {
           })}
         </nav>
 
-        {/* Today Section Placeholder */}
+        {/* Today Section */}
         {isOpen && (
           <div className="mt-8 px-2">
             <h3 className="text-[10.5px] font-bold text-text-mute uppercase tracking-loosest mb-3">Dzisiaj</h3>
             <div className="space-y-3">
-              {[
-                { label: "Wniosek - Nowak", type: "pobyt", time: "12:30" },
-                { label: "Odbiór karty", type: "visa", time: "14:00" },
-                { label: "Konsultacja", type: "obywatelstwo", time: "16:15" },
-              ].map((task, i) => (
-                <div key={i} className="flex items-center gap-2 group cursor-pointer">
-                  <div className={cn("w-1 h-3.5 rounded-full shrink-0", `bg-${task.type}`)} />
+              {upcomingTasks.length > 0 ? upcomingTasks.map((task, i) => (
+                <Link 
+                  key={task.id} 
+                  href={`/clients/${task.id}`}
+                  className="flex items-center gap-2 group cursor-pointer"
+                >
+                  <div className={cn("w-1 h-3.5 rounded-full shrink-0", 
+                    task.CelPobytu?.toLowerCase().includes("wiza") ? "bg-visa" : 
+                    task.CelPobytu?.toLowerCase().includes("obywatelstwo") ? "bg-obywatelstwo" : 
+                    task.CelPobytu?.toLowerCase().includes("praca") ? "bg-praca" : "bg-pobyt"
+                  )} />
                   <div className="flex flex-col min-w-0">
-                    <span className="text-xs font-semibold text-text truncate group-hover:text-brand transition-colors">{task.label}</span>
-                    <span className="text-[10px] text-text-mute font-mono">{task.time}</span>
+                    <span className="text-xs font-semibold text-text truncate group-hover:text-brand transition-colors">{task.Name}</span>
+                    <span className="text-[10px] text-text-mute font-mono">
+                      {task.DataZakLegPob ? new Date(task.DataZakLegPob).toLocaleDateString('pl-PL') : "Termin"}
+                    </span>
                   </div>
-                </div>
-              ))}
+                </Link>
+              )) : (
+                <p className="text-[10px] text-text-mute italic px-1">Brak pilnych zadań.</p>
+              )}
             </div>
           </div>
         )}

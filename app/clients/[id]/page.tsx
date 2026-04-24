@@ -141,27 +141,41 @@ export default function ClientDetailsPage() {
           </TabsContent>
           
           <TabsContent value="documents" className="mt-8 border-none p-0 outline-none">
-            <div className="min-h-[400px] border-2 border-dashed border-border-strong rounded-panel flex items-center justify-center text-text-mute bg-surface/50">
-              Dokumenty Placeholder
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
+              <div className="flex flex-col gap-6">
+                <DocsChecklistPanel client={client} />
+                <Card>
+                  <CardContent className="py-10 text-center text-text-mute">
+                    <p className="text-sm">Lista plików w chmurze (Supabase Storage)</p>
+                    <div className="mt-4 flex flex-col gap-2 max-w-md mx-auto">
+                      {client.Doc?.split(',').filter(Boolean).map((doc, i) => (
+                        <div key={i} className="flex items-center justify-between p-2 rounded border border-border bg-surface text-xs">
+                          <span className="truncate flex-1 text-left px-2">{doc.split('/').pop()}</span>
+                          <a href={doc} target="_blank" rel="noopener noreferrer" className="text-brand font-bold px-2 hover:underline">Otwórz</a>
+                        </div>
+                      )) || "Brak wgranych plików."}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              <div className="flex flex-col gap-6">
+                <ContactPanel client={client} />
+              </div>
             </div>
           </TabsContent>
           
           <TabsContent value="history" className="mt-8 border-none p-0 outline-none">
-            <div className="min-h-[400px] border-2 border-dashed border-border-strong rounded-panel flex items-center justify-center text-text-mute bg-surface/50">
-              Historia Placeholder
-            </div>
+             <TimelinePanel client={client} />
           </TabsContent>
           
           <TabsContent value="notes" className="mt-8 border-none p-0 outline-none">
-            <div className="min-h-[400px] border-2 border-dashed border-border-strong rounded-panel flex items-center justify-center text-text-mute bg-surface/50">
-              Notatki Placeholder
-            </div>
+             <NotesPanel client={client} />
           </TabsContent>
           
           <TabsContent value="finance" className="mt-8 border-none p-0 outline-none">
-            <div className="min-h-[400px] border-2 border-dashed border-border-strong rounded-panel flex items-center justify-center text-text-mute bg-surface/50">
-              Finanse Placeholder
-            </div>
+             <div className="max-w-2xl">
+                <FinancesPanel client={client} />
+             </div>
           </TabsContent>
         </Tabs>
       </div>
