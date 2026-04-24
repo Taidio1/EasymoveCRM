@@ -3,29 +3,18 @@
 import { useState, useEffect, useMemo } from "react"
 import { Client, getClients } from "@/lib/superbase"
 import MainLayout from "@/components/main-layout"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ChevronDown } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import DayView from "@/components/calendar/day-view"
 import WeekView from "@/components/calendar/week-view"
 import MonthView from "@/components/calendar/month-view"
 import ListView from "@/components/calendar/list-view"
 import { CalendarToolbar } from "@/components/calendar/toolbar"
-import { 
-  CalendarEventType, 
-  CalendarEvent, 
-  eventTypeColorsHex, 
-  eventTypeLabels, 
-  mapClientsToEvents 
-} from "@/lib/calendar-utils"
+import { mapClientsToEvents } from "@/lib/calendar-utils"
 
 export default function CalendarPage() {
   const [clients, setClients] = useState<Client[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<"day" | "week" | "month" | "list">("month")
-  const [isLegendOpen, setIsLegendOpen] = useState(false)
 
   // Mapowanie klientów na wydarzenia
   const events = useMemo(() => mapClientsToEvents(clients), [clients])
@@ -126,53 +115,19 @@ export default function CalendarPage() {
         </div>
 
         {/* Nowy Toolbar */}
-        <CalendarToolbar 
-          view={view}
-          onViewChange={setView}
-          dateHeader={getDateHeader()}
-          onPrev={goToPrevious}
-          onNext={goToNext}
-          onToday={goToToday}
-        />
-
-        {/* Legenda */}
-        <Collapsible open={isLegendOpen} onOpenChange={setIsLegendOpen}>
-          <Card>
-            <CollapsibleTrigger asChild>
-              <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors py-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    Legenda typów wydarzeń
-                  </CardTitle>
-                  <ChevronDown 
-                    className={cn(
-                      "h-4 w-4 text-muted-foreground transition-transform",
-                      isLegendOpen && "rotate-180"
-                    )}
-                  />
-                </div>
-              </CardHeader>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <CardContent className="pb-4">
-                <div className="flex flex-wrap gap-x-6 gap-y-2">
-                  {Object.entries(eventTypeLabels).map(([type, label]) => (
-                    <div key={type} className="flex items-center gap-2">
-                      <div 
-                        className="w-3 h-3 rounded-full shadow-sm" 
-                        style={{ backgroundColor: eventTypeColorsHex[type as CalendarEventType] }}
-                      />
-                      <span className="text-sm text-muted-foreground">{label}</span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
+        <div className="bg-surface border border-border rounded-panel p-1.5 shadow-sm">
+          <CalendarToolbar 
+            view={view}
+            onViewChange={setView}
+            dateHeader={getDateHeader()}
+            onPrev={goToPrevious}
+            onNext={goToNext}
+            onToday={goToToday}
+          />
+        </div>
 
         {/* Widoki kalendarza */}
-        <div className="mt-6">
+        <div className="min-h-[600px]">
           {view === "day" && (
             <DayView events={events} currentDate={currentDate} />
           )}
