@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
+import { format } from "date-fns"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CalendarEvent, eventTypeColorsHex, eventTypeLabels } from "@/lib/calendar-utils"
 import { cn } from "@/lib/utils"
@@ -48,13 +49,13 @@ export default function WeekView({ events, currentDate }: WeekViewProps) {
     const grouped: { [key: string]: CalendarEvent[] } = {}
     
     weekDays.forEach((day) => {
-      const dayKey = day.toISOString().split("T")[0]
+      const dayKey = format(day, "yyyy-MM-dd")
       grouped[dayKey] = []
     })
 
     events.forEach((event) => {
       const eventDate = new Date(event.date)
-      const dayKey = eventDate.toISOString().split("T")[0]
+      const dayKey = format(eventDate, "yyyy-MM-dd")
       
       if (grouped[dayKey]) {
         grouped[dayKey].push(event)
@@ -132,7 +133,7 @@ export default function WeekView({ events, currentDate }: WeekViewProps) {
                 </div>
 
                 {weekDays.map((day, dayIdx) => {
-                  const dayKey = day.toISOString().split("T")[0]
+                  const dayKey = format(day, "yyyy-MM-dd")
                   const dayEvents = eventsByDay[dayKey] || []
 
                   return (
@@ -140,7 +141,7 @@ export default function WeekView({ events, currentDate }: WeekViewProps) {
                       key={dayIdx}
                       className={cn(
                         "relative h-[600px] border-r border-border last:border-r-0",
-                        isToday(day) && "bg-brand-soft/10"
+                        isToday(day) && "bg-brand-soft"
                       )}
                     >
                       {dayEvents.map((event) => {
