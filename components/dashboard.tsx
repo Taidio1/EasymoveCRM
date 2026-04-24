@@ -30,6 +30,9 @@ import { GreetingRow } from "./dashboard/greeting-row"
 import { StatCard } from "./dashboard/stat-card"
 import { AttentionPanel } from "./dashboard/attention-panel"
 import { PipelinePanel } from "./dashboard/pipeline-panel"
+import { TodayAppointments } from "./dashboard/today-appointments"
+import { MiniGrowthChart } from "./dashboard/mini-growth-chart"
+import { ActivityFeed } from "./dashboard/activity-feed"
 
 export default function Dashboard() {
   const [clients, setClients] = useState<Client[]>([])
@@ -281,58 +284,7 @@ export default function Dashboard() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <Card className="col-span-2 md:col-span-2 lg:col-span-1">
-                <CardHeader>
-                  <CardTitle>Ostatnie aktywności</CardTitle>
-                  <CardDescription>Najnowsze działania w systemie</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {isLoading ? (
-                    <div className="py-8 flex items-center justify-center">
-                      <p>Ładowanie danych...</p>
-                    </div>
-                  ) : recentClients.length > 0 ? (
-                    <div className="space-y-4">
-                      {recentClients.map((client) => {
-                        // Obliczenie, ile czasu minęło od dodania klienta
-                        const createdDate = client.CreatedDate
-                          ? new Date(client.CreatedDate)
-                          : null;
-
-                        let timeAgo = "niedawno";
-                        if (createdDate) {
-                          const now = new Date();
-                          const diffInHours = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60));
-
-                          if (diffInHours < 24) {
-                            timeAgo = diffInHours === 1 ? "1h temu" : `Dziś`;
-                          } else {
-                            const diffInDays = Math.floor(diffInHours / 24);
-                            timeAgo = diffInDays === 1 ? "1 dzień temu" : `${diffInDays} dni temu`;
-                          }
-                        }
-
-                        return (
-                          <div key={client.id} className="flex items-center gap-4">
-                            <div className="w-2 h-2 rounded-full bg-primary"></div>
-                            <div className="flex-1 space-y-1">
-                              <p className="text-sm font-medium leading-none">Nowy klient dodany</p>
-                              <p className="text-sm text-muted-foreground">{client.Name} został pomyślnie dodany</p>
-                            </div>
-                            <div className="text-xs text-muted-foreground">{timeAgo}</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="py-8 flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                      <p>Brak ostatnich aktywności</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card className="col-span-2">
+              <Card className="col-span-3">
                 <CardHeader>
                   <CardTitle>Nadchodzące Zakończenie Legalnego Pobytu</CardTitle>
                   <CardDescription>Klienci z kończącym się legalnym pobytem w ciągu najbliższych 6 miesięcy</CardDescription>
@@ -414,8 +366,11 @@ export default function Dashboard() {
         </Tabs>
       </div>
 
-      {/* Right Column (Empty for now) */}
+      {/* Right Column */}
       <div className="space-y-8">
+        <TodayAppointments />
+        <MiniGrowthChart />
+        <ActivityFeed />
       </div>
 
       {/* Modal szczegółów klienta - stays outside the grid for logical structure, 
