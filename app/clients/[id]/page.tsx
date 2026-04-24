@@ -13,6 +13,7 @@ import { NotesPanel } from "@/components/clients/notes-panel"
 import { ContactPanel } from "@/components/clients/contact-panel"
 import { DocsChecklistPanel } from "@/components/clients/docs-checklist-panel"
 import { FinancesPanel } from "@/components/clients/finances-panel"
+import { Card, CardContent } from "@/components/ui/card"
 
 export default function ClientDetailsPage() {
   const params = useParams()
