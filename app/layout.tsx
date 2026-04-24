@@ -1,9 +1,21 @@
-import { Inter } from 'next/font/google'
+import { IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google'
 import './globals.css'
 import type { Metadata } from 'next'
 import { AppProviders } from './AppProviders'
 
-const inter = Inter({ subsets: ['latin-ext'] })
+const plexSans = IBM_Plex_Sans({
+  subsets: ['latin', 'latin-ext'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-sans',
+  display: 'swap',
+})
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ['latin', 'latin-ext'],
+  weight: ['400', '500', '600'],
+  variable: '--font-mono',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'Easy Move CRM',
@@ -12,11 +24,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pl" suppressHydrationWarning>
-      <head>
-        <meta name="color-scheme" content="light" />
-      </head>
-      <body className={inter.className}>
+    <html lang="pl" suppressHydrationWarning className={`${plexSans.variable} ${plexMono.variable}`}>
+      <body className="font-sans">
         <AppProviders>{children}</AppProviders>
       </body>
     </html>
