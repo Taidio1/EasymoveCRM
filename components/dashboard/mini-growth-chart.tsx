@@ -1,17 +1,25 @@
+"use client"
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts"
+import { Bar, BarChart, ResponsiveContainer, XAxis, Tooltip } from "recharts"
+import { type Client } from "@/lib/superbase"
 
-const data = [
-  { day: "Pn", cases: 4 },
-  { day: "Wt", cases: 7 },
-  { day: "Śr", cases: 5 },
-  { day: "Cz", cases: 8 },
-  { day: "Pt", cases: 6 },
-  { day: "So", cases: 3 },
-  { day: "Nd", cases: 2 },
-]
+interface MiniGrowthChartProps {
+  clients?: Client[]
+}
 
-export function MiniGrowthChart() {
+export function MiniGrowthChart({ clients = [] }: MiniGrowthChartProps) {
+  // Simple aggregation for the last 7 days (mock logic for demo)
+  const data = [
+    { day: "Pn", cases: 4 },
+    { day: "Wt", cases: 7 },
+    { day: "Śr", cases: 5 },
+    { day: "Cz", cases: 8 },
+    { day: "Pt", cases: 6 },
+    { day: "So", cases: 3 },
+    { day: "Nd", cases: 2 },
+  ]
+
   return (
     <Card className="bg-surface border-border shadow-none overflow-hidden">
       <CardHeader className="pb-2">

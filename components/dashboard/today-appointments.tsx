@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import { type Client } from "@/lib/superbase"
 
 interface Appointment {
   id: string
@@ -9,14 +10,22 @@ interface Appointment {
   caseLabel: string
 }
 
-const appointments: Appointment[] = [
-  { id: "1", time: "09:00", clientName: "Jan Kowalski", caseType: "pobyt", caseLabel: "Pobyt Czasowy" },
-  { id: "2", time: "10:30", clientName: "Anna Nowak", caseType: "visa", caseLabel: "Wiza D-typu" },
-  { id: "3", time: "13:00", clientName: "Piotr Wiśniewski", caseType: "obywatelstwo", caseLabel: "Obywatelstwo" },
-  { id: "4", time: "15:30", clientName: "Maria Dąbrowska", caseType: "praca", caseLabel: "Zezwolenie na pracę" },
-]
+interface TodayAppointmentsProps {
+  clients?: Client[]
+}
 
-export function TodayAppointments() {
+export function TodayAppointments({ clients = [] }: TodayAppointmentsProps) {
+  // Map real clients to appointments format for visualization
+  const appointments: Appointment[] = clients.slice(0, 4).map((c, i) => ({
+    id: c.id,
+    time: ["09:00", "10:30", "13:00", "15:30"][i] || "12:00",
+    clientName: c.Name,
+    caseType: (c.CelPobytu?.toLowerCase().includes("wiza") ? "visa" : 
+               c.CelPobytu?.toLowerCase().includes("obywatelstwo") ? "obywatelstwo" : 
+               c.CelPobytu?.toLowerCase().includes("praca") ? "praca" : "pobyt") as any,
+    caseLabel: c.CelPobytu || "Pobyt Czasowy"
+  }))
+
   return (
     <Card className="bg-surface border-border shadow-none">
       <CardHeader className="pb-3">
@@ -26,7 +35,7 @@ export function TodayAppointments() {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {appointments.map((apt) => (
+          {appointments.length > 0 ? appointments.map((apt) => (
             <div key={apt.id} className="flex items-center justify-between group">
               <div className="flex items-center gap-4">
                 <span className="font-mono text-xs font-bold text-brand bg-brand-soft/30 px-2 py-1 rounded-chip">
@@ -53,7 +62,9 @@ export function TodayAppointments() {
                 <div className="w-1.5 h-1.5 rounded-full bg-border-strong" />
               </div>
             </div>
-          ))}
+          )) : (
+            <p className="text-sm text-muted-foreground py-4 text-center">Brak zaplanowanych spotkań.</p>
+          )}
         </div>
       </CardContent>
     </Card>

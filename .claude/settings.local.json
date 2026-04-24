@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:api.anthropic.com)",
+      "Bash(mkdir -p /tmp/design-bundle)",
+      "Bash(gunzip -c \"C:/Users/kkacp/.claude/projects/G--Work---IT-Easy-Move-EasymoveCRM/f4012cb2-ffba-494a-8334-c7d624a302d8/tool-results/webfetch-1776974256851-5ijgv3.bin\")",
+      "Read(//tmp/**)",
+      "Read(//tmp/design-bundle/**)",
+      "Bash(tar -xf raw.tar)",
+      "Bash(cp -r /tmp/design-bundle/system-crm-easy-move \"C:/Users/kkacp/AppData/Local/Temp/easymove-design\")",
+      "Read(//c/Users/kkacp/AppData/Local/Temp/**)"
+    ]
+  }
+}

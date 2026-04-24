@@ -5,20 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Activity, Globe, ExternalLink } from "lucide-react"
-import {
-  Chart,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  ChartLegend,
-  ChartLegendItem,
-  ChartGrid,
-  ChartXAxis,
-  ChartYAxis,
-  ChartArea,
-  ChartLine,
-  ChartBar,
-} from "@/components/ui/chart"
 import { getClients, getQuarterlyClientData, type Client, type QuarterlyData } from "@/lib/superbase"
 import { toast } from "@/hooks/use-toast"
 import { RoleGuard } from "@/components/role-guard"
@@ -162,6 +148,12 @@ export default function Dashboard() {
     client.Status?.toLowerCase() !== "nieaktywny"
   ).length
 
+  // Sprawy wymagające uwagi (urgent)
+  const urgentCount = clients.filter(client => 
+    client.Status?.toLowerCase() === "weryfikacja" || 
+    client.Status?.toLowerCase() === "braki"
+  ).length
+
   // Funkcja do otwierania szczegółów klienta
   const handleOpenClientDetails = (client: Client) => {
     setSelectedClient(client)
@@ -196,7 +188,10 @@ export default function Dashboard() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-8">
       <div className="space-y-8">
-        <GreetingRow name="Użytkowniku" stats={{ appointments: 4, urgent: 2 }} />
+        <GreetingRow 
+          name="Użytkowniku" 
+          stats={{ appointments: upcomingExpirations.length || 4, urgent: urgentCount }} 
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <AttentionPanel clients={clients} isLoading={isLoading} />
@@ -368,9 +363,9 @@ export default function Dashboard() {
 
       {/* Right Column */}
       <div className="space-y-8">
-        <TodayAppointments />
-        <MiniGrowthChart />
-        <ActivityFeed />
+        <TodayAppointments clients={clients} />
+        <MiniGrowthChart clients={clients} />
+        <ActivityFeed clients={recentClients} />
       </div>
 
       {/* Modal szczegółów klienta - stays outside the grid for logical structure, 

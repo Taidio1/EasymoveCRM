@@ -15,8 +15,8 @@ export function AttentionPanel({ clients, isLoading }: AttentionPanelProps) {
   // For now, let's take the first 5 clients as requested or filter by some logic
   const attentionItems = clients
     .filter(client => 
-      client.Status?.toLowerCase() !== "zakończony" && 
-      client.Status?.toLowerCase() !== "nieaktywny"
+      client.Status?.toLowerCase() === "weryfikacja" || 
+      client.Status?.toLowerCase() === "braki"
     )
     .slice(0, 5)
 
