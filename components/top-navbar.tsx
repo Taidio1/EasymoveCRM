@@ -1,145 +1,86 @@
 "use client"
 
-import { useState } from "react"
 import { useSidebar } from "@/components/sidebar-provider"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Bell, Search, Menu, X, Sun, Moon, LogOut, User, Settings } from "lucide-react"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Bell, Menu, Sun, Moon } from "lucide-react"
 import { useTheme } from "next-themes"
-import { useAuth } from "@/hooks/use-auth"
-import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { cn } from "@/lib/utils"
 
 export default function TopNavbar() {
-  const { toggle, isOpen } = useSidebar()
-  const [showSearch, setShowSearch] = useState(false)
+  const { toggle } = useSidebar()
   const { setTheme, theme } = useTheme()
-  const { user, logout } = useAuth()
+  const pathname = usePathname()
 
-  // Pobranie inicjaÅÃ³w z emaila uÅ¼ytkownika
-  const getInitials = (email: string) => {
-    if (!email) return "U"
-    const parts = email.split("@")[0].split(".")
-    if (parts.length > 1) {
-      return (parts[0][0] + parts[1][0]).toUpperCase()
+  // Map path to title/subtitle
+  const getPageContext = () => {
+    const segments = pathname.split('/').filter(Boolean)
+    if (segments.length === 0) return { title: "Pulpit", subtitle: "Przegląd statystyk i ostatnich aktywności" }
+    
+    const page = segments[0]
+    switch (page) {
+      case 'clients':
+        return { title: "Klienci", subtitle: "Zarządzanie bazą klientów i dokumentacją" }
+      case 'calendar':
+        return { title: "Terminy", subtitle: "Kalendarz spotkań i ważnych dat" }
+      case 'reports':
+        return { title: "Raporty i Dokumenty", subtitle: "Generowanie zestawień i formularzy" }
+      case 'settings':
+        return { title: "Ustawienia", subtitle: "Konfiguracja konta i systemu" }
+      default:
+        return { title: "System CRM", subtitle: "EasyMove Legal Management" }
     }
-    return email.substring(0, 2).toUpperCase()
   }
 
+  const { title, subtitle } = getPageContext()
+
   return (
-    <header className="sticky top-0 z-40 border-b bg-background">
-      <div className="flex h-16 items-center justify-between px-4">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={toggle} className="md:hidden">
-            <Menu size={20} />
+    <header className="sticky top-0 z-40 h-[60px] border-b border-border bg-surface/80 backdrop-blur-md">
+      <div className="flex h-full items-center justify-between px-4 md:px-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={toggle} className="md:hidden size-8 text-text-dim">
+            <Menu size={18} />
           </Button>
 
-          {/* Desktop search */}
-          <div className="hidden md:flex relative w-64">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input type="search" placeholder="Search..." className="w-full pl-8" />
+          <div className="flex flex-col">
+            <h1 className="text-[18px] font-semibold text-text leading-tight tracking-semi-tight">
+              {title}
+            </h1>
+            <p className="text-[12px] text-text-mute font-medium leading-none mt-0.5">
+              {subtitle}
+            </p>
           </div>
-
-          {/* Mobile search toggle */}
-          <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setShowSearch(!showSearch)}>
-            {showSearch ? <X size={20} /> : <Search size={20} />}
-          </Button>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {/* Theme toggle */}
-          <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-            {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="size-8 text-text-dim hover:text-text hover:bg-surface-hover"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          >
+            {theme === "dark" ? <Sun size={16} /> : <Moon size={18} />}
           </Button>
 
           {/* Notifications */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell size={20} />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80">
-              <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <div className="max-h-96 overflow-auto">
-                {[1, 2, 3].map((i) => (
-                  <DropdownMenuItem key={i} className="cursor-pointer p-4">
-                    <div className="flex flex-col gap-1">
-                      <p className="font-medium">New client signed up</p>
-                      <p className="text-sm text-muted-foreground">Client #{i} has registered and needs approval</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {i} hour{i !== 1 ? "s" : ""} ago
-                      </p>
-                    </div>
-                  </DropdownMenuItem>
-                ))}
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="size-8 text-text-dim hover:text-text hover:bg-surface-hover relative"
+          >
+            <Bell size={16} />
+            <span className="absolute top-2 right-2 size-1.5 bg-danger rounded-full border border-surface shadow-sm"></span>
+          </Button>
 
-          {/* User profile */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full">
-                <Avatar>
-                  <AvatarImage src={user?.avatar_url || "/placeholder.svg"} alt="User" />
-                  <AvatarFallback>{user ? getInitials(user.email) : "U"}</AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>
-                {user?.first_name && user?.last_name 
-                  ? `${user.first_name} ${user.last_name}`
-                  : user?.email
-                }
-                <div className="text-xs font-normal text-muted-foreground mt-1">
-                  {user?.role || "Użytkownik"}
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/settings">
-                  <User size={16} className="mr-2" />
-                  Profil
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/settings">
-                  <Settings size={16} className="mr-2" />
-                  Ustawienia
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => logout()}>
-                <LogOut size={16} className="mr-2" />
-                Wyloguj
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
+          <div className="h-4 w-px bg-border mx-1 hidden md:block" />
 
-      {/* Mobile search bar */}
-      {showSearch && (
-        <div className="p-4 border-t md:hidden">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input type="search" placeholder="Search..." className="w-full pl-8" />
+          {/* Extra Slot for Actions (can be extended later) */}
+          <div className="hidden md:flex items-center">
+            {/* Example: <Button size="sm" variant="secondary" className="h-7 text-xs">Dodaj klienta</Button> */}
           </div>
         </div>
-      )}
+      </div>
     </header>
   )
 }
-
