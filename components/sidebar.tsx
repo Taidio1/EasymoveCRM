@@ -77,7 +77,17 @@ export default function Sidebar() {
 
       {/* Search Trigger */}
       <div className="px-3 mb-4">
-        <button className="flex items-center gap-2 w-full h-8 px-2 rounded-btn border border-border bg-bg hover:bg-surface-hover transition-colors group">
+        <button 
+          className="flex items-center gap-2 w-full h-8 px-2 rounded-btn border border-border bg-bg hover:bg-surface-hover transition-colors group"
+          onClick={() => {
+            document.dispatchEvent(new KeyboardEvent('keydown', {
+              key: 'k',
+              metaKey: true,
+              ctrlKey: true,
+              bubbles: true
+            }))
+          }}
+        >
           <Search className="size-3.5 text-text-dim group-hover:text-text" />
           {isOpen && (
             <>
