@@ -1,141 +1,139 @@
 "use client"
 
 import { useMemo } from "react"
+import { format, isToday } from "date-fns"
+import { pl } from "date-fns/locale"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { CalendarEvent } from "@/lib/calendar-utils"
+import { CalendarEvent, eventTypeColorsHex, eventTypeLabels } from "@/lib/calendar-utils"
 import { cn } from "@/lib/utils"
-import { Clock } from "lucide-react"
-import { formatDate } from "@/lib/utils"
+import { Calendar } from "lucide-react"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface DayViewProps {
   events: CalendarEvent[]
   currentDate: Date
 }
 
+const HOURS = Array.from({ length: 10 }, (_, i) => i + 8) // 8:00 - 17:00
+
 export default function DayView({ events, currentDate }: DayViewProps) {
   // Filtrowanie wydarzeń dla wybranego dnia
   const dayEvents = useMemo(() => {
-    const dayStart = new Date(currentDate)
-    dayStart.setHours(0, 0, 0, 0)
-    const dayEnd = new Date(currentDate)
-    dayEnd.setHours(23, 59, 59, 999)
-
     return events.filter((event) => {
       const eventDate = new Date(event.date)
-      eventDate.setHours(0, 0, 0, 0)
-      return eventDate >= dayStart && eventDate <= dayEnd
+      return format(eventDate, "yyyy-MM-dd") === format(currentDate, "yyyy-MM-dd")
     })
   }, [events, currentDate])
 
-  // Grupowanie wydarzeń według godzin (dla wydarzeń z godzinami)
-  const eventsByHour = useMemo(() => {
-    const hours: { [key: number]: CalendarEvent[] } = {}
-    
-    // Tworzenie struktury dla wszystkich godzin dnia (6:00 - 22:00)
-    for (let hour = 6; hour <= 22; hour++) {
-      hours[hour] = []
-    }
-
-    dayEvents.forEach((event) => {
-      const eventHour = event.date.getHours()
-      // Jeśli wydarzenie ma godzinę, dodaj do odpowiedniej godziny
-      if (eventHour >= 6 && eventHour <= 22) {
-        if (!hours[eventHour]) {
-          hours[eventHour] = []
-        }
-        hours[eventHour].push(event)
-      } else {
-        // Jeśli nie ma godziny lub jest poza zakresem, dodaj do 9:00
-        if (!hours[9]) {
-          hours[9] = []
-        }
-        hours[9].push(event)
-      }
-    })
-
-    return hours
-  }, [dayEvents])
-
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString("pl-PL", {
-      hour: "2-digit",
-      minute: "2-digit",
-    })
+  const getDayName = (date: Date) => {
+    return format(date, "EEEE", { locale: pl }).toUpperCase()
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Clock className="h-5 w-5" />
+    <Card className="shadow-sm border-border overflow-hidden">
+      <CardHeader className="py-4 border-b">
+        <CardTitle className="text-lg font-semibold flex items-center gap-2">
+          <Calendar className="h-5 w-5 text-brand" />
           Widok dzienny
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        {dayEvents.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <p>Brak wydarzeń w tym dniu</p>
+      <CardContent className="p-0">
+        <div className="flex flex-col">
+          {/* Duży nagłówek dnia */}
+          <div className="p-8 border-b border-border bg-muted/10">
+            <div className="text-xs font-bold text-muted-foreground tracking-wider mb-2 uppercase">
+              {getDayName(currentDate)}
+            </div>
+            <div className={cn(
+              "text-3xl font-bold tracking-tight",
+              isToday(currentDate) ? "text-brand" : "text-text"
+            )}>
+              {format(currentDate, "d MMMM yyyy", { locale: pl })}
+            </div>
           </div>
-        ) : (
-          <div className="space-y-4">
-            {Object.entries(eventsByHour)
-              .filter(([_, events]) => events.length > 0)
-              .map(([hour, hourEvents]) => (
-                <div key={hour} className="flex gap-4">
-                  {/* Godzina */}
-                  <div className="w-20 flex-shrink-0 text-right pt-2">
-                    <span className="text-sm font-medium text-muted-foreground">
+
+          <ScrollArea className="h-[600px]">
+            <div className="flex relative">
+              {/* Kolumna godzin */}
+              <div className="w-[70px] shrink-0 border-r border-border bg-muted/5">
+                {HOURS.map((hour) => (
+                  <div
+                    key={hour}
+                    className="h-[80px] border-b border-border/50 last:border-b-0 px-3 py-2 text-right"
+                  >
+                    <span className="text-[11px] font-mono text-muted-foreground font-semibold">
                       {hour}:00
                     </span>
                   </div>
+                ))}
+              </div>
 
-                  {/* Wydarzenia */}
-                  <div className="flex-1 space-y-2">
-                    {hourEvents.map((event) => (
+              {/* Grid wydarzeń */}
+              <div className="flex-1 relative bg-background">
+                {/* Linie pomocnicze */}
+                <div className="absolute inset-0 pointer-events-none">
+                  {HOURS.map((hour) => (
+                    <div
+                      key={hour}
+                      className="h-[80px] border-b border-border/40 last:border-b-0"
+                    />
+                  ))}
+                </div>
+
+                <div className="relative h-[800px] py-0">
+                  {dayEvents.map((event) => {
+                    const date = new Date(event.date)
+                    const startHour = date.getHours() + date.getMinutes() / 60
+                    
+                    // Tylko w godzinach 8:00 - 18:00 (grid 8-17)
+                    if (startHour < 8 || startHour >= 18) return null
+
+                    const top = (startHour - 8) * 80
+                    const height = 74 // Stała wysokość dla wydarzeń (prawie cała godzina)
+                    const color = eventTypeColorsHex[event.type] || "#3b82f6"
+
+                    return (
                       <div
                         key={event.id}
-                        className={cn(
-                          "p-4 rounded-lg border-l-4",
-                          "bg-muted/50 hover:bg-muted transition-colors"
-                        )}
-                      style={{
-                        borderLeftColor: event.color
-                      }}
+                        className="absolute left-4 right-4 rounded-md p-4 shadow-sm cursor-pointer hover:shadow-md transition-all z-10 border-l-[4px]"
+                        style={{
+                          top: `${top + 3}px`,
+                          height: `${height}px`,
+                          backgroundColor: `${color}15`,
+                          borderLeftColor: color,
+                        }}
                       >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Badge
-                                variant="outline"
-                                className="text-xs text-white border-0"
-                                style={{
-                                  backgroundColor: event.color
-                                }}
-                              >
-                                {event.title.split(" - ")[0]}
-                              </Badge>
-                              <span className="text-sm text-muted-foreground">
-                                {formatTime(event.date)}
-                              </span>
+                        <div className="flex justify-between items-start mb-1.5">
+                          <span className="text-[10px] font-mono font-bold opacity-70">
+                            {format(date, "HH:mm")}
+                          </span>
+                          {event.priority === "high" && (
+                            <div className="flex items-center gap-1">
+                              <span className="text-[9px] font-bold text-red-500 uppercase tracking-wider">Pilne</span>
+                              <span className="bg-red-500 w-2 h-2 rounded-full animate-pulse" />
                             </div>
-                            <h3 className="font-semibold text-base">{event.clientName}</h3>
-                            {event.description && (
-                              <p className="text-sm text-muted-foreground mt-1">
-                                {event.description}
-                              </p>
-                            )}
-                          </div>
+                          )}
+                        </div>
+                        <div className="font-bold text-base text-text truncate mb-0.5">
+                          {event.clientName}
+                        </div>
+                        <div className="text-xs text-text/70 truncate font-semibold">
+                          {eventTypeLabels[event.type] || event.title}
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    )
+                  })}
+                  {dayEvents.length === 0 && (
+                    <div className="flex items-center justify-center h-full text-muted-foreground text-sm font-medium">
+                      Brak zaplanowanych wydarzeń
+                    </div>
+                  )}
                 </div>
-              ))}
-          </div>
-        )}
+              </div>
+            </div>
+          </ScrollArea>
+        </div>
       </CardContent>
     </Card>
   )
 }
-
