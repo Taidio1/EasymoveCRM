@@ -78,25 +78,25 @@ export function TimelinePanel({ client }: TimelinePanelProps) {
   // Mocking timeline stages based on client status and dates
   const stages = [
     {
-      date: client.CreatedDate ? new Date(client.CreatedDate).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' }) : "01.01",
+      date: client.CreatedDate ? new Date(client.CreatedDate).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: '2-digit' }) : "01.01",
       title: "Rejestracja w systemie",
       subtitle: `Klient został dodany do bazy przez ${client.Creator || 'system'}.`,
       status: "completed" as const
     },
     {
-      date: client.DataZloWnio ? new Date(client.DataZloWnio).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' }) : "---",
+      date: client.DataZloWnio ? new Date(client.DataZloWnio).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: '2-digit' }) : "---",
       title: "Złożenie wniosku",
       subtitle: client.DataZloWnio ? `Wniosek został złożony w urzędzie.` : "Oczekiwanie na komplet dokumentów.",
       status: client.DataZloWnio ? "completed" as const : (client.Status === 'W trakcie' ? "current" as const : "pending" as const)
     },
     {
-      date: client.DataOdbDecyzji ? new Date(client.DataOdbDecyzji).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' }) : "---",
+      date: client.DataOdbDecyzji ? new Date(client.DataOdbDecyzji).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: '2-digit' }) : "---",
       title: "Decyzja urzędowa",
       subtitle: client.DataOdbDecyzji ? `Wydano pozytywną decyzję.` : "Sprawa w toku weryfikacji urzędowej.",
       status: client.DataOdbDecyzji ? "completed" as const : (client.DataZloWnio && !client.DataOdbDecyzji ? "current" as const : "pending" as const)
     },
     {
-      date: client.DataOdbKartyPob ? new Date(client.DataOdbKartyPob).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' }) : "---",
+      date: client.DataOdbKartyPob ? new Date(client.DataOdbKartyPob).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: '2-digit' }) : "---",
       title: "Odbiór karty pobytu",
       subtitle: client.DataOdbKartyPob ? "Karta została odebrana przez klienta." : "Oczekiwanie na druk karty.",
       status: client.DataOdbKartyPob ? "completed" as const : (client.DataOdbDecyzji && !client.DataOdbKartyPob ? "current" as const : "pending" as const)
