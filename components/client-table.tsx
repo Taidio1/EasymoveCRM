@@ -19,6 +19,7 @@ import { toast } from "@/hooks/use-toast"
 import { type Client, getClients, deleteClient } from "@/lib/superbase"
 import { cn } from "@/lib/utils"
 import { FilterBar } from "@/components/clients/filter-bar"
+import { getFlagEmoji, getInitials, CSV_BOM, escapeCsvCell } from "@/lib/client-utils"
 
 // Funkcja do formatowania daty
 const formatDate = (dateString: string | null | undefined): string => {
@@ -67,29 +68,6 @@ const getCaseIcon = (type: string) => {
   }
 };
 
-const getInitials = (name: string | null) => {
-  if (!name) return "??";
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .substring(0, 2);
-};
-
-const getFlagEmoji = (countryName: string | null) => {
-  if (!countryName) return "🏳️";
-  const name = countryName.toLowerCase();
-  if (name.includes("polska")) return "🇵🇱";
-  if (name.includes("ukraina")) return "🇺🇦";
-  if (name.includes("białoruś")) return "🇧🇾";
-  if (name.includes("indie")) return "🇮🇳";
-  if (name.includes("gruzja")) return "🇬🇪";
-  if (name.includes("rosja")) return "🇷🇺";
-  if (name.includes("mołdawia")) return "🇲🇩";
-  return "🏳️";
-};
-
 const getDocumentsStatus = (client: Client) => {
   const docs = [
     client.FormWni,
@@ -115,7 +93,6 @@ export default function ClientTable() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [clients, setClients] = useState<Client[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [showCompleted, setShowCompleted] = useState(false)
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'DataZloWnio', direction: 'desc' })
 
   useEffect(() => {
@@ -208,11 +185,9 @@ export default function ClientTable() {
         matchesStatus = client.Status?.toLowerCase() === "zaplanowany";
       }
 
-      const matchesCompletedFilter = showCompleted || client.Status !== "Zakończony";
-
-      return matchesSearch && matchesStatus && matchesCompletedFilter;
+      return matchesSearch && matchesStatus;
     });
-  }, [clients, searchTerm, activeStatusFilter, showCompleted]);
+  }, [clients, searchTerm, activeStatusFilter]);
 
   const sortedClients = useMemo(() => {
     if (!sortConfig) return filteredClients;
@@ -232,24 +207,30 @@ export default function ClientTable() {
   }, [filteredClients, sortConfig]);
 
   const exportToCSV = () => {
-    const headers = ["Klient", "ID", "Sprawa", "Status", "Data Zlozenia", "Doradca"];
-    const rows = sortedClients.map(c => [
+    const headers = ["Klient", "ID", "Sprawa", "Status", "Data złożenia", "Doradca"]
+    const rows = sortedClients.map((c) => [
       c.Name,
       c.id,
       c.CelPobytu,
       c.Status,
       c.DataZloWnio,
-      c.Inspektor || c.Creator
-    ]);
-    
-    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", "klienci.csv");
-    link.click();
-  };
+      c.Inspektor || c.Creator,
+    ])
+
+    const csvContent =
+      CSV_BOM +
+      [headers, ...rows]
+        .map((row) => row.map(escapeCsvCell).join(","))
+        .join("\r\n")
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.setAttribute("href", url)
+    link.setAttribute("download", "klienci.csv")
+    link.click()
+    URL.revokeObjectURL(url)
+  }
 
   const SortIcon = ({ column }: { column: keyof Client }) => {
     if (sortConfig?.key !== column) return <ArrowUpDown className="ml-2 h-3.5 w-3.5 opacity-50" />;
@@ -300,7 +281,7 @@ export default function ClientTable() {
                     <div className="flex items-center">Etap <SortIcon column="Status" /></div>
                   </TableHead>
                   <TableHead className="h-10 py-0 text-xxs font-bold uppercase tracking-loosest text-text-mute cursor-pointer select-none" onClick={() => handleSort('DataZloWnio')}>
-                    <div className="flex items-center">Następny termin <SortIcon column="DataZloWnio" /></div>
+                    <div className="flex items-center">Data złożenia <SortIcon column="DataZloWnio" /></div>
                   </TableHead>
                   <TableHead className="h-10 py-0 text-xxs font-bold uppercase tracking-loosest text-text-mute">Dokumenty</TableHead>
                   <TableHead className="h-10 py-0 text-xxs font-bold uppercase tracking-loosest text-text-mute">Doradca</TableHead>
