@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { CalendarEvent, eventTypeLabels } from "@/app/calendar/page"
+import { CalendarEvent, eventTypeLabels } from "@/lib/calendar-utils"
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { Calendar as CalendarIcon } from "lucide-react"

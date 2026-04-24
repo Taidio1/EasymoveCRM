@@ -4,156 +4,21 @@ import { useState, useEffect, useMemo } from "react"
 import { Client, getClients } from "@/lib/superbase"
 import MainLayout from "@/components/main-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, List, Clock, ChevronDown } from "lucide-react"
-import { formatDate } from "@/lib/utils"
+import { ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import DayView from "@/components/calendar/day-view"
 import WeekView from "@/components/calendar/week-view"
 import MonthView from "@/components/calendar/month-view"
 import ListView from "@/components/calendar/list-view"
-
-// Typy wydarzeń kalendarza
-export type CalendarEventType = 
-  | "visa_expiration"           // Data wygaśnięcia wizy
-  | "residence_permit_expiration" // Data wygaśnięcia karty pobytu
-  | "decision_pickup"           // Termin odbioru decyzji
-  | "residence_permit_pickup"   // Termin odbioru karty pobytu
-  | "application_submission"    // Termin złożenia wniosku o przedłużenie
-  | "application_issued"        // Data wydania wniosku
-  | "office_visit"              // Terminy wizyt w urzędach
-
-export interface CalendarEvent {
-  id: string
-  clientId: string
-  clientName: string
-  type: CalendarEventType
-  date: Date
-  title: string
-  description?: string
-  color: string
-  priority: "low" | "medium" | "high"
-}
-
-// Mapowanie typów wydarzeń na kolory (klasy Tailwind)
-const eventTypeColors: Record<CalendarEventType, string> = {
-  visa_expiration: "bg-red-500",
-  residence_permit_expiration: "bg-orange-500",
-  decision_pickup: "bg-blue-500",
-  residence_permit_pickup: "bg-green-500",
-  application_submission: "bg-purple-500",
-  application_issued: "bg-indigo-500",
-  office_visit: "bg-yellow-500",
-}
-
-// Mapowanie typów wydarzeń na kolory hex (dla inline styles)
-const eventTypeColorsHex: Record<CalendarEventType, string> = {
-  visa_expiration: "#ef4444",
-  residence_permit_expiration: "#f97316",
-  decision_pickup: "#3b82f6",
-  residence_permit_pickup: "#22c55e",
-  application_submission: "#a855f7",
-  application_issued: "#6366f1",
-  office_visit: "#eab308",
-}
-
-// Mapowanie typów wydarzeń na nazwy
-const eventTypeLabels: Record<CalendarEventType, string> = {
-  visa_expiration: "Wygaśnięcie wizy",
-  residence_permit_expiration: "Wygaśnięcie karty pobytu",
-  decision_pickup: "Odbior decyzji",
-  residence_permit_pickup: "Odbior karty pobytu",
-  application_submission: "Złożenie wniosku",
-  application_issued: "Wydanie wniosku",
-  office_visit: "Wizyta w urzędzie",
-}
-
-// Funkcja mapująca klientów na wydarzenia kalendarza
-function mapClientsToEvents(clients: Client[]): CalendarEvent[] {
-  const events: CalendarEvent[] = []
-
-  clients.forEach((client) => {
-    // Data zakończenia legalnego pobytu (wygaśnięcie wizy)
-    if (client.DataZakLegPob) {
-      events.push({
-        id: `visa_exp_${client.id}`,
-        clientId: client.id,
-        clientName: client.Name,
-        type: "visa_expiration",
-        date: new Date(client.DataZakLegPob),
-        title: `Wygaśnięcie wizy - ${client.Name}`,
-        description: `Klient: ${client.Name}`,
-        color: eventTypeColorsHex.visa_expiration,
-        priority: "high",
-      })
-    }
-
-    // Data odbioru karty pobytu (może być też terminem wygaśnięcia)
-    if (client.DataOdbKartyPob) {
-      events.push({
-        id: `res_perm_pickup_${client.id}`,
-        clientId: client.id,
-        clientName: client.Name,
-        type: "residence_permit_pickup",
-        date: new Date(client.DataOdbKartyPob),
-        title: `Odbior karty pobytu - ${client.Name}`,
-        description: `Klient: ${client.Name}`,
-        color: eventTypeColorsHex.residence_permit_pickup,
-        priority: "medium",
-      })
-    }
-
-    // Data odbioru decyzji
-    if (client.DataOdbDecyzji) {
-      events.push({
-        id: `decision_pickup_${client.id}`,
-        clientId: client.id,
-        clientName: client.Name,
-        type: "decision_pickup",
-        date: new Date(client.DataOdbDecyzji),
-        title: `Odbior decyzji - ${client.Name}`,
-        description: `Klient: ${client.Name}`,
-        color: eventTypeColorsHex.decision_pickup,
-        priority: "medium",
-      })
-    }
-
-    // Data złożenia wniosku
-    if (client.DataZloWnio) {
-      events.push({
-        id: `app_submission_${client.id}`,
-        clientId: client.id,
-        clientName: client.Name,
-        type: "application_submission",
-        date: new Date(client.DataZloWnio),
-        title: `Złożenie wniosku - ${client.Name}`,
-        description: `Klient: ${client.Name}`,
-        color: eventTypeColorsHex.application_submission,
-        priority: "low",
-      })
-    }
-
-    // Data wydania wniosku
-    if (client.DataWydWni) {
-      events.push({
-        id: `app_issued_${client.id}`,
-        clientId: client.id,
-        clientName: client.Name,
-        type: "application_issued",
-        date: new Date(client.DataWydWni),
-        title: `Wydanie wniosku - ${client.Name}`,
-        description: `Klient: ${client.Name}`,
-        color: eventTypeColorsHex.application_issued,
-        priority: "low",
-      })
-    }
-  })
-
-  return events.sort((a, b) => a.date.getTime() - b.date.getTime())
-}
+import { CalendarToolbar } from "@/components/calendar/toolbar"
+import { 
+  CalendarEventType, 
+  CalendarEvent, 
+  eventTypeColorsHex, 
+  eventTypeLabels, 
+  mapClientsToEvents 
+} from "@/lib/calendar-utils"
 
 export default function CalendarPage() {
   const [clients, setClients] = useState<Client[]>([])
@@ -255,51 +120,30 @@ export default function CalendarPage() {
         {/* Nagłówek */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Kalendarz</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Kalendarz</h1>
             <p className="text-muted-foreground">Zarządzanie terminami urzędowymi</p>
           </div>
         </div>
 
-        {/* Kontrolki nawigacji i widoku */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              {/* Nawigacja dat */}
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" onClick={goToPrevious}>
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" onClick={goToToday}>
-                  Dzisiaj
-                </Button>
-                <Button variant="outline" size="icon" onClick={goToNext}>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-                <div className="ml-4 text-lg font-semibold">
-                  {getDateHeader()}
-                </div>
-              </div>
-
-              {/* Przełącznik widoków */}
-              <Tabs value={view} onValueChange={(v) => setView(v as typeof view)}>
-                <TabsList>
-                  <TabsTrigger value="day">Dzień</TabsTrigger>
-                  <TabsTrigger value="week">Tydzień</TabsTrigger>
-                  <TabsTrigger value="month">Miesiąc</TabsTrigger>
-                  <TabsTrigger value="list">Lista</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Nowy Toolbar */}
+        <CalendarToolbar 
+          view={view}
+          onViewChange={setView}
+          dateHeader={getDateHeader()}
+          onPrev={goToPrevious}
+          onNext={goToNext}
+          onToday={goToToday}
+        />
 
         {/* Legenda */}
         <Collapsible open={isLegendOpen} onOpenChange={setIsLegendOpen}>
           <Card>
             <CollapsibleTrigger asChild>
-              <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+              <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors py-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm">Legenda</CardTitle>
+                  <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Legenda typów wydarzeń
+                  </CardTitle>
                   <ChevronDown 
                     className={cn(
                       "h-4 w-4 text-muted-foreground transition-transform",
@@ -310,12 +154,12 @@ export default function CalendarPage() {
               </CardHeader>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <CardContent>
-                <div className="flex flex-wrap gap-4">
+              <CardContent className="pb-4">
+                <div className="flex flex-wrap gap-x-6 gap-y-2">
                   {Object.entries(eventTypeLabels).map(([type, label]) => (
                     <div key={type} className="flex items-center gap-2">
                       <div 
-                        className="w-4 h-4 rounded" 
+                        className="w-3 h-3 rounded-full shadow-sm" 
                         style={{ backgroundColor: eventTypeColorsHex[type as CalendarEventType] }}
                       />
                       <span className="text-sm text-muted-foreground">{label}</span>
@@ -350,7 +194,3 @@ export default function CalendarPage() {
     </MainLayout>
   )
 }
-
-// Eksport typów i funkcji pomocniczych
-export { eventTypeColors, eventTypeColorsHex, eventTypeLabels, mapClientsToEvents }
-

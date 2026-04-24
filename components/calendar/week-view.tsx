@@ -3,7 +3,7 @@
 import { useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { CalendarEvent } from "@/app/calendar/page"
+import { CalendarEvent } from "@/lib/calendar-utils"
 import { cn } from "@/lib/utils"
 import { Calendar } from "lucide-react"
 
