@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Client } from "@/lib/superbase"
 import { User, MessageSquare, Send, MoreHorizontal } from "lucide-react"
+import { toast } from "@/hooks/use-toast"
 
 interface NoteProps {
   author: string
@@ -42,33 +43,23 @@ interface NotesPanelProps {
 export function NotesPanel({ client }: NotesPanelProps) {
   const [newNote, setNewNote] = useState("")
 
-  // Mocked notes list + existing client.Notes
-  const notes = [
-    {
-      author: "Anna Kowalska",
-      date: "Dzisiaj, 10:30",
-      content: "Klient dostarczył brakujące zaświadczenie o niekaralności. Dokument został zeskanowany i dodany do folderu."
-    },
-    {
-      author: "Marek Nowak",
-      date: "Wczoraj, 14:15",
-      content: "Kontakt telefoniczny z klientem. Poinformowano o konieczności opłacenia brakującej kwoty za pełnomocnictwo."
-    }
-  ]
-
-  // Add client.Notes as the oldest note if it exists
+  const notes: NoteProps[] = []
   if (client.Notes) {
     notes.push({
       author: client.Creator || "System",
-      date: client.CreatedDate ? new Date(client.CreatedDate).toLocaleDateString('pl-PL') : "Początek",
-      content: client.Notes
+      date: client.CreatedDate
+        ? new Date(client.CreatedDate).toLocaleDateString("pl-PL")
+        : "Początek",
+      content: client.Notes,
     })
   }
 
   const handleSubmitNote = () => {
     if (!newNote.trim()) return
-    // Here we would normally call an API to save the note
-    console.log("Saving note:", newNote)
+    toast({
+      title: "Funkcja w budowie",
+      description: "Zapis notatek zostanie dodany w kolejnej iteracji.",
+    })
     setNewNote("")
   }
 
@@ -103,14 +94,20 @@ export function NotesPanel({ client }: NotesPanelProps) {
 
         {/* Notes List */}
         <div className="flex flex-col gap-4">
-          {notes.map((note, index) => (
-            <NoteItem 
-              key={index}
-              author={note.author}
-              date={note.date}
-              content={note.content}
-            />
-          ))}
+          {notes.length === 0 ? (
+            <p className="text-sm text-text-mute italic px-2">
+              Brak notatek dla tego klienta.
+            </p>
+          ) : (
+            notes.map((note, index) => (
+              <NoteItem
+                key={index}
+                author={note.author}
+                date={note.date}
+                content={note.content}
+              />
+            ))
+          )}
         </div>
       </CardContent>
     </Card>
