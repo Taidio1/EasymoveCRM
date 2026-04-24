@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Client } from "@/lib/superbase"
-import { cn } from "@/lib/utils"
+import { getInitials, getFlagEmoji } from "@/lib/client-utils"
 
 interface DetailsHeaderProps {
   client: Client
@@ -13,32 +13,6 @@ interface DetailsHeaderProps {
 
 export function DetailsHeader({ client }: DetailsHeaderProps) {
   const router = useRouter()
-  
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .filter(Boolean)
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .substring(0, 2)
-  }
-
-  // Mapowanie krajów na flagi (uproszczone)
-  const getFlag = (country: string | null) => {
-    if (!country) return "🏳️"
-    const c = country.toLowerCase()
-    if (c.includes("polsk")) return "🇵🇱"
-    if (c.includes("ukrai")) return "🇺🇦"
-    if (c.includes("biało")) return "🇧🇾"
-    if (c.includes("gruz")) return "🇬🇪"
-    if (c.includes("mołd")) return "🇲🇩"
-    if (c.includes("rosj")) return "🇷🇺"
-    if (c.includes("kazach")) return "🇰🇿"
-    if (c.includes("uzbek")) return "🇺🇿"
-    if (c.includes("indie")) return "🇮🇳"
-    return "🌍"
-  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -68,7 +42,7 @@ export function DetailsHeader({ client }: DetailsHeaderProps) {
                 {client.Name}
               </h1>
               <span className="text-xl leading-none" title={client.KrajPoch || "Nieznany"}>
-                {getFlag(client.KrajPoch || client.country_name)}
+                {getFlagEmoji(client.KrajPoch || client.country_name)}
               </span>
               <Badge 
                 variant="outline" 
