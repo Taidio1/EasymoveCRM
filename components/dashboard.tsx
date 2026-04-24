@@ -26,6 +26,7 @@ import { CountriesChart } from "./countries-chart"
 import { QuarterlyGrowthChart } from "./quarterly-growth-chart"
 import { ClientDetailsModal } from "./client-details-modal"
 import { WebsiteAnalytics } from "./website-analytics"
+import { GreetingRow } from "./dashboard/greeting-row"
 
 export default function Dashboard() {
   const [clients, setClients] = useState<Client[]>([])
@@ -187,246 +188,250 @@ export default function Dashboard() {
   }, [isLoading, topCountries])
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Przegląd statystyk i metryk biznesowych</p>
-      </div>
+    <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-8">
+      <div className="space-y-8">
+        <GreetingRow name="Użytkowniku" stats={{ appointments: 4, urgent: 2 }} />
 
-      <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="overview">Przegląd</TabsTrigger>
-          <TabsTrigger value="website-analytics">Analityka Strony</TabsTrigger>
-        </TabsList>
+        <Tabs defaultValue="overview" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="overview">Przegląd</TabsTrigger>
+            <TabsTrigger value="website-analytics">Analityka Strony</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="overview" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {/* Metric Cards */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Wszyscy klienci</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{isLoading ? "Ładowanie..." : clients.length}</div>
-                <p className="text-xs text-muted-foreground">Łączna liczba klientów w systemie</p>
-              </CardContent>
-            </Card>
+          <TabsContent value="overview" className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {/* Metric Cards */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Wszyscy klienci</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{isLoading ? "Ładowanie..." : clients.length}</div>
+                  <p className="text-xs text-muted-foreground">Łączna liczba klientów w systemie</p>
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Aktywni klienci</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{isLoading ? "Ładowanie..." : activeClientsCount}</div>
-                <p className="text-xs text-muted-foreground">Klienci o statusie aktywnym</p>
-              </CardContent>
-            </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Aktywni klienci</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{isLoading ? "Ładowanie..." : activeClientsCount}</div>
+                  <p className="text-xs text-muted-foreground">Klienci o statusie aktywnym</p>
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Oczekujące faktury</CardTitle>
-                <CreditCard className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">12</div>
-                <p className="text-xs text-muted-foreground">-3 od ostatniego miesiąca</p>
-              </CardContent>
-            </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Oczekujące faktury</CardTitle>
+                  <CreditCard className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">12</div>
+                  <p className="text-xs text-muted-foreground">-3 od ostatniego miesiąca</p>
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Aktywne projekty</CardTitle>
-                <Activity className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">24</div>
-                <p className="text-xs text-muted-foreground">+4 od ostatniego miesiąca</p>
-              </CardContent>
-            </Card>
-          </div>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Aktywne projekty</CardTitle>
+                  <Activity className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">24</div>
+                  <p className="text-xs text-muted-foreground">+4 od ostatniego miesiąca</p>
+                </CardContent>
+              </Card>
+            </div>
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            <RoleGuard allowedRoles={["boss", "admin"]}>
-              <Card className="col-span-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+              <RoleGuard allowedRoles={["boss", "admin"]}>
+                <Card className="col-span-4">
+                  <CardHeader>
+                    <CardTitle>Kraje pochodzenia klientów</CardTitle>
+                    <CardDescription>Top 6 krajów według liczby klientów</CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-80">
+                    {isLoading ? (
+                      <div className="h-full flex items-center justify-center">
+                        <p>Ładowanie danych...</p>
+                      </div>
+                    ) : topCountries.length > 0 ? (
+                      <CountriesChart data={topCountries} />
+                    ) : (
+                      <div className="h-full flex flex-col items-center justify-center gap-2">
+                        <Globe className="h-12 w-12 text-muted-foreground" />
+                        <p className="text-muted-foreground">Brak danych o krajach pochodzenia</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </RoleGuard>
+
+              <Card className="col-span-3">
                 <CardHeader>
-                  <CardTitle>Kraje pochodzenia klientów</CardTitle>
-                  <CardDescription>Top 6 krajów według liczby klientów</CardDescription>
+                  <CardTitle>Wzrost liczby klientów</CardTitle>
+                  <CardDescription>Kwartalne dane nowych klientów (na podstawie dat złożenia wniosków)</CardDescription>
                 </CardHeader>
                 <CardContent className="h-80">
-                  {isLoading ? (
+                  {quarterlyLoading ? (
                     <div className="h-full flex items-center justify-center">
-                      <p>Ładowanie danych...</p>
+                      <p>Ładowanie danych kwartalnych...</p>
                     </div>
-                  ) : topCountries.length > 0 ? (
-                    <CountriesChart data={topCountries} />
+                  ) : quarterlyData.length > 0 ? (
+                    <QuarterlyGrowthChart data={quarterlyData} />
                   ) : (
                     <div className="h-full flex flex-col items-center justify-center gap-2">
-                      <Globe className="h-12 w-12 text-muted-foreground" />
-                      <p className="text-muted-foreground">Brak danych o krajach pochodzenia</p>
+                      <Activity className="h-12 w-12 text-muted-foreground" />
+                      <p className="text-muted-foreground">Brak danych kwartalnych</p>
                     </div>
                   )}
                 </CardContent>
               </Card>
-            </RoleGuard>
+            </div>
 
-            <Card className="col-span-3">
-              <CardHeader>
-                <CardTitle>Wzrost liczby klientów</CardTitle>
-                <CardDescription>Kwartalne dane nowych klientów (na podstawie dat złożenia wniosków)</CardDescription>
-              </CardHeader>
-              <CardContent className="h-80">
-                {quarterlyLoading ? (
-                  <div className="h-full flex items-center justify-center">
-                    <p>Ładowanie danych kwartalnych...</p>
-                  </div>
-                ) : quarterlyData.length > 0 ? (
-                  <QuarterlyGrowthChart data={quarterlyData} />
-                ) : (
-                  <div className="h-full flex flex-col items-center justify-center gap-2">
-                    <Activity className="h-12 w-12 text-muted-foreground" />
-                    <p className="text-muted-foreground">Brak danych kwartalnych</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <Card className="col-span-2 md:col-span-2 lg:col-span-1">
-              <CardHeader>
-                <CardTitle>Ostatnie aktywności</CardTitle>
-                <CardDescription>Najnowsze działania w systemie</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <div className="py-8 flex items-center justify-center">
-                    <p>Ładowanie danych...</p>
-                  </div>
-                ) : recentClients.length > 0 ? (
-                  <div className="space-y-4">
-                    {recentClients.map((client) => {
-                      // Obliczenie, ile czasu minęło od dodania klienta
-                      const createdDate = client.CreatedDate
-                        ? new Date(client.CreatedDate)
-                        : null;
-
-                      let timeAgo = "niedawno";
-                      if (createdDate) {
-                        const now = new Date();
-                        const diffInHours = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60));
-
-                        if (diffInHours < 24) {
-                          timeAgo = diffInHours === 1 ? "1h temu" : `Dziś`;
-                        } else {
-                          const diffInDays = Math.floor(diffInHours / 24);
-                          timeAgo = diffInDays === 1 ? "1 dzień temu" : `${diffInDays} dni temu`;
-                        }
-                      }
-
-                      return (
-                        <div key={client.id} className="flex items-center gap-4">
-                          <div className="w-2 h-2 rounded-full bg-primary"></div>
-                          <div className="flex-1 space-y-1">
-                            <p className="text-sm font-medium leading-none">Nowy klient dodany</p>
-                            <p className="text-sm text-muted-foreground">{client.Name} został pomyślnie dodany</p>
-                          </div>
-                          <div className="text-xs text-muted-foreground">{timeAgo}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="py-8 flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                    <p>Brak ostatnich aktywności</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="col-span-2">
-              <CardHeader>
-                <CardTitle>Nadchodzące Zakończenie Legalnego Pobytu</CardTitle>
-                <CardDescription>Klienci z kończącym się legalnym pobytem w ciągu najbliższych 6 miesięcy</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <Card className="col-span-2 md:col-span-2 lg:col-span-1">
+                <CardHeader>
+                  <CardTitle>Ostatnie aktywności</CardTitle>
+                  <CardDescription>Najnowsze działania w systemie</CardDescription>
+                </CardHeader>
+                <CardContent>
                   {isLoading ? (
                     <div className="py-8 flex items-center justify-center">
                       <p>Ładowanie danych...</p>
                     </div>
-                  ) : upcomingExpirations.length > 0 ? (
-                    upcomingExpirations.map((client) => {
-                      const expirationDate = new Date(client.DataZakLegPob!)
-                      const today = new Date()
-                      const diffTime = expirationDate.getTime() - today.getTime()
-                      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+                  ) : recentClients.length > 0 ? (
+                    <div className="space-y-4">
+                      {recentClients.map((client) => {
+                        // Obliczenie, ile czasu minęło od dodania klienta
+                        const createdDate = client.CreatedDate
+                          ? new Date(client.CreatedDate)
+                          : null;
 
-                      let timeLabel = ""
-                      if (diffDays < 0) {
-                        timeLabel = "Przekroczono"
-                      } else if (diffDays === 0) {
-                        timeLabel = "Dziś"
-                      } else if (diffDays === 1) {
-                        timeLabel = "Jutro"
-                      } else {
-                        timeLabel = `Za ${diffDays} dni`
-                      }
+                        let timeAgo = "niedawno";
+                        if (createdDate) {
+                          const now = new Date();
+                          const diffInHours = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60));
 
-                      return (
-                        <div key={client.id} className="flex items-start gap-4">
-                          <div className="mt-1 w-5 h-5 rounded-full border-2 border-primary flex items-center justify-center">
+                          if (diffInHours < 24) {
+                            timeAgo = diffInHours === 1 ? "1h temu" : `Dziś`;
+                          } else {
+                            const diffInDays = Math.floor(diffInHours / 24);
+                            timeAgo = diffInDays === 1 ? "1 dzień temu" : `${diffInDays} dni temu`;
+                          }
+                        }
+
+                        return (
+                          <div key={client.id} className="flex items-center gap-4">
                             <div className="w-2 h-2 rounded-full bg-primary"></div>
-                          </div>
-                          <div className="flex-1 space-y-1">
-                            <div className="flex items-center justify-between">
-                              <p className="text-sm font-medium leading-none">{client.Name}</p>
-                              <div className="flex items-center gap-2">
-                                <div className={`text-xs px-2 py-1 rounded-full ${
-                                  diffDays < 0
-                                    ? "bg-destructive/10 text-destructive"
-                                    : diffDays <= 7
-                                      ? "bg-warning/10 text-warning"
-                                      : "bg-primary/10 text-primary"
-                                }`}>
-                                  {timeLabel}
-                                </div>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleOpenClientDetails(client)}
-                                  className="h-6 px-2 text-xs"
-                                >
-                                  <ExternalLink className="h-3 w-3 mr-1" />
-                                  Szczegóły
-                                </Button>
-                              </div>
+                            <div className="flex-1 space-y-1">
+                              <p className="text-sm font-medium leading-none">Nowy klient dodany</p>
+                              <p className="text-sm text-muted-foreground">{client.Name} został pomyślnie dodany</p>
                             </div>
-                            <p className="text-sm text-muted-foreground">
-                              Data zakończenia: {expirationDate.toLocaleDateString()}
-                            </p>
+                            <div className="text-xs text-muted-foreground">{timeAgo}</div>
                           </div>
-                        </div>
-                      )
-                    })
+                        );
+                      })}
+                    </div>
                   ) : (
                     <div className="py-8 flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                      <p>Brak nadchodzących zakończeń w ciągu najbliższych 6 miesięcy</p>
+                      <p>Brak ostatnich aktywności</p>
                     </div>
                   )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
+                </CardContent>
+              </Card>
 
-        <TabsContent value="website-analytics" className="space-y-4">
-          <WebsiteAnalytics />
-        </TabsContent>
-      </Tabs>
+              <Card className="col-span-2">
+                <CardHeader>
+                  <CardTitle>Nadchodzące Zakończenie Legalnego Pobytu</CardTitle>
+                  <CardDescription>Klienci z kończącym się legalnym pobytem w ciągu najbliższych 6 miesięcy</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {isLoading ? (
+                      <div className="py-8 flex items-center justify-center">
+                        <p>Ładowanie danych...</p>
+                      </div>
+                    ) : upcomingExpirations.length > 0 ? (
+                      upcomingExpirations.map((client) => {
+                        const expirationDate = new Date(client.DataZakLegPob!)
+                        const today = new Date()
+                        const diffTime = expirationDate.getTime() - today.getTime()
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
-      {/* Modal szczegółów klienta */}
+                        let timeLabel = ""
+                        if (diffDays < 0) {
+                          timeLabel = "Przekroczono"
+                        } else if (diffDays === 0) {
+                          timeLabel = "Dziś"
+                        } else if (diffDays === 1) {
+                          timeLabel = "Jutro"
+                        } else {
+                          timeLabel = `Za ${diffDays} dni`
+                        }
+
+                        return (
+                          <div key={client.id} className="flex items-start gap-4">
+                            <div className="mt-1 w-5 h-5 rounded-full border-2 border-primary flex items-center justify-center">
+                              <div className="w-2 h-2 rounded-full bg-primary"></div>
+                            </div>
+                            <div className="flex-1 space-y-1">
+                              <div className="flex items-center justify-between">
+                                <p className="text-sm font-medium leading-none">{client.Name}</p>
+                                <div className="flex items-center gap-2">
+                                  <div className={`text-xs px-2 py-1 rounded-full ${
+                                    diffDays < 0
+                                      ? "bg-destructive/10 text-destructive"
+                                      : diffDays <= 7
+                                        ? "bg-warning/10 text-warning"
+                                        : "bg-primary/10 text-primary"
+                                  }`}>
+                                    {timeLabel}
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleOpenClientDetails(client)}
+                                    className="h-6 px-2 text-xs"
+                                  >
+                                    <ExternalLink className="h-3 w-3 mr-1" />
+                                    Szczegóły
+                                  </Button>
+                                </div>
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                Data zakończenia: {expirationDate.toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                        )
+                      })
+                    ) : (
+                      <div className="py-8 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                        <p>Brak nadchodzących zakończeń w ciągu najbliższych 6 miesięcy</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="website-analytics" className="space-y-4">
+            <WebsiteAnalytics />
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {/* Right Column (Empty for now) */}
+      <div className="space-y-8">
+      </div>
+
+      {/* Modal szczegółów klienta - stays outside the grid for logical structure, 
+          though it doesn't affect layout as it's absolute/fixed */}
       <ClientDetailsModal
         open={isDetailsModalOpen}
         onOpenChange={setIsDetailsModalOpen}
