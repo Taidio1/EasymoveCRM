@@ -10,6 +10,9 @@ import { Loader2 } from "lucide-react"
 import { DetailsHeader } from "@/components/clients/details-header"
 import { TimelinePanel } from "@/components/clients/timeline-panel"
 import { NotesPanel } from "@/components/clients/notes-panel"
+import { ContactPanel } from "@/components/clients/contact-panel"
+import { DocsChecklistPanel } from "@/components/clients/docs-checklist-panel"
+import { FinancesPanel } from "@/components/clients/finances-panel"
 
 export default function ClientDetailsPage() {
   const params = useParams()
@@ -128,15 +131,11 @@ export default function ClientDetailsPage() {
                 <NotesPanel client={client} />
               </div>
               
-              {/* Right Column Placeholder */}
+              {/* Right Column */}
               <div className="flex flex-col gap-6">
-                <div className="min-h-[500px] border-2 border-dashed border-border-strong rounded-panel flex flex-col items-center justify-center text-text-mute bg-surface/50 p-8 text-center">
-                  <div className="w-10 h-10 rounded-full bg-surface border border-border-strong flex items-center justify-center mb-4">
-                    <Loader2 className="h-4 w-4 animate-spin opacity-20" />
-                  </div>
-                  <p className="text-sm font-medium text-text">Panel boczny</p>
-                  <p className="text-xs max-w-[200px] mt-1">Miejsce na szybkie statystyki, przypisane osoby, tagi i kluczowe daty.</p>
-                </div>
+                <ContactPanel client={client} />
+                <DocsChecklistPanel client={client} />
+                <FinancesPanel client={client} />
               </div>
             </div>
           </TabsContent>
