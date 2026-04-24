@@ -4,17 +4,30 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center gap-1 rounded-pill px-[7px] py-[2px] text-xxs font-semibold tracking-[0.02em] transition-colors",
   {
     variants: {
       variant: {
+        // Pill = design's VA_Pill with color-soft background + colored text.
+        success: "bg-success-soft text-success",
+        warn: "bg-warn-soft text-warn",
+        danger: "bg-danger-soft text-danger",
+        info: "bg-info-soft text-info",
+        brand: "bg-brand-soft text-brand",
+        // Case types
+        visa: "bg-visa/10 text-visa",
+        pobyt: "bg-pobyt/10 text-pobyt",
+        obywatelstwo: "bg-obywatelstwo/10 text-obywatelstwo",
+        praca: "bg-praca/10 text-praca",
+        // Shadcn back-compat
         default:
-          "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
+          "bg-brand-soft text-brand",
         secondary:
-          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
+          "bg-surface-hover text-text-dim",
         destructive:
-          "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
-        outline: "text-foreground",
+          "bg-danger-soft text-danger",
+        outline:
+          "border border-border text-text-dim",
       },
     },
     defaultVariants: {
