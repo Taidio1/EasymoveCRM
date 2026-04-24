@@ -28,6 +28,8 @@ import { ClientDetailsModal } from "./client-details-modal"
 import { WebsiteAnalytics } from "./website-analytics"
 import { GreetingRow } from "./dashboard/greeting-row"
 import { StatCard } from "./dashboard/stat-card"
+import { AttentionPanel } from "./dashboard/attention-panel"
+import { PipelinePanel } from "./dashboard/pipeline-panel"
 
 export default function Dashboard() {
   const [clients, setClients] = useState<Client[]>([])
@@ -192,6 +194,11 @@ export default function Dashboard() {
     <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-8">
       <div className="space-y-8">
         <GreetingRow name="Użytkowniku" stats={{ appointments: 4, urgent: 2 }} />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <AttentionPanel clients={clients} isLoading={isLoading} />
+          <PipelinePanel clients={clients} isLoading={isLoading} />
+        </div>
 
         <Tabs defaultValue="overview" className="space-y-4">
           <TabsList>
