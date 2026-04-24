@@ -8,6 +8,8 @@ import MainLayout from "@/components/main-layout"
 import { toast } from "@/hooks/use-toast"
 import { Loader2 } from "lucide-react"
 import { DetailsHeader } from "@/components/clients/details-header"
+import { TimelinePanel } from "@/components/clients/timeline-panel"
+import { NotesPanel } from "@/components/clients/notes-panel"
 
 export default function ClientDetailsPage() {
   const params = useParams()
@@ -119,15 +121,11 @@ export default function ClientDetailsPage() {
           <TabsContent value="overview" className="mt-8 border-none p-0 outline-none">
             {/* 1fr : 320px Grid Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
-              {/* Left Column Placeholder */}
-              <div className="flex flex-col gap-6">
-                <div className="min-h-[500px] border-2 border-dashed border-border-strong rounded-panel flex flex-col items-center justify-center text-text-mute bg-surface/50 p-12 text-center">
-                  <div className="w-12 h-12 rounded-full bg-surface border border-border-strong flex items-center justify-center mb-4">
-                    <Loader2 className="h-5 w-5 animate-spin opacity-20" />
-                  </div>
-                  <p className="text-sm font-medium text-text">Obszar główny (Przegląd)</p>
-                  <p className="text-xs max-w-[240px] mt-1">Tutaj znajdą się karty z danymi klienta, postępem sprawy oraz ostatnią aktywnością.</p>
-                </div>
+              {/* Left Column - Timeline & Notes */}
+              <div className="flex flex-col gap-12">
+                <TimelinePanel client={client} />
+                <div className="h-px bg-border/60" />
+                <NotesPanel client={client} />
               </div>
               
               {/* Right Column Placeholder */}
