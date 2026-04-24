@@ -54,7 +54,7 @@ export function DetailsHeader({ client }: DetailsHeaderProps) {
             
             {/* Meta row */}
             <div className="flex items-center gap-3 text-xs-plus text-text-dim">
-              <span className="font-mono text-text-mute tracking-tight">ID: {client.id.substring(0, 8)}</span>
+              <span className="font-mono text-text-mute tracking-tight">ID: {String(client.id).substring(0, 8)}</span>
               <span className="w-1 h-1 rounded-full bg-border-strong shrink-0" />
               <span className="font-medium text-text-dim">{client.CelPobytu || "Brak typu"}</span>
               <span className="w-1 h-1 rounded-full bg-border-strong shrink-0" />

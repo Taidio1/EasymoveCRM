@@ -77,7 +77,7 @@ export function AttentionPanel({ clients, isLoading }: AttentionPanelProps) {
                       {client.Name}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      {client.CelPobytu || "Brak typu"} • {client.NumerSprawy || `#${client.id.substring(0, 5)}`}
+                      {client.CelPobytu || "Brak typu"} • {client.NumerSprawy || `#${String(client.id).substring(0, 5)}`}
                     </span>
                   </div>
                 </div>

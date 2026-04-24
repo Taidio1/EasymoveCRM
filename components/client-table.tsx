@@ -331,7 +331,7 @@ export default function ClientTable() {
                         </TableCell>
                         <TableCell className="py-3">
                           <span className="font-mono text-xxs text-text-mute uppercase">
-                            {client.id.substring(0, 8)}
+                            {String(client.id).substring(0, 8)}
                           </span>
                         </TableCell>
                         <TableCell className="py-3">
