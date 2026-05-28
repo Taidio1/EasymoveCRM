@@ -19,15 +19,33 @@ function drawGridField(page: PDFPage, text: string, field: FieldMapping, font: P
   const boxWidth = field.boxWidth ?? 14.2
   const maxCharsPerRow = field.maxCharsPerRow ?? 35
   const rowHeight = field.rowHeight ?? 25
-  const chars = text.toUpperCase().split("")
+  const words = text.toUpperCase().split(" ")
 
-  chars.forEach((char, index) => {
-    if (char === " ") return
-    const rowIndex = Math.floor(index / maxCharsPerRow)
-    const charX = field.x + (index % maxCharsPerRow) * boxWidth
-    const charY = field.y - rowIndex * rowHeight
-    page.drawText(char, { x: charX, y: charY, size: field.fontSize, font })
-  })
+  let currentRow = 0
+  let currentCol = 0
+
+  for (const word of words) {
+    if (currentCol + word.length > maxCharsPerRow && currentCol > 0) {
+      currentRow++
+      currentCol = 0
+    }
+
+    for (const char of word) {
+      if (currentCol >= maxCharsPerRow) {
+        currentRow++
+        currentCol = 0
+      }
+      page.drawText(char, {
+        x: field.x + currentCol * boxWidth,
+        y: field.y - currentRow * rowHeight,
+        size: field.fontSize,
+        font,
+      })
+      currentCol++
+    }
+
+    if (currentCol < maxCharsPerRow) currentCol++
+  }
 }
 
 export async function generateDocument(templateId: string, client: Client): Promise<Uint8Array> {
