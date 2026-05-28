@@ -8,7 +8,10 @@
       "Read(//tmp/design-bundle/**)",
       "Bash(tar -xf raw.tar)",
       "Bash(cp -r /tmp/design-bundle/system-crm-easy-move \"C:/Users/kkacp/AppData/Local/Temp/easymove-design\")",
-      "Read(//c/Users/kkacp/AppData/Local/Temp/**)"
+      "Read(//c/Users/kkacp/AppData/Local/Temp/**)",
+      "Bash(npx tsc *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
     ]
   }
 }
