@@ -131,10 +131,6 @@ export interface Client {
 // Pobieranie wszystkich klientów z nazwami krajów
 export async function getClients(): Promise<Client[]> {
   try {
-    console.log("Próba pobrania klientów...");
-    console.log("Supabase URL:", supabaseUrl);
-    console.log("Supabase Anon Key:", supabaseAnonKey ? "✓ Klucz obecny" : "✗ Brak klucza");
-
     const { data, error } = await supabase
       .from("clients")
       .select(`
@@ -145,25 +141,14 @@ export async function getClients(): Promise<Client[]> {
       `);
 
     if (error) {
-      console.error("Szczegółowy błąd Supabase:", error);
-      console.error("Kod błędu:", error.code);
-      console.error("Szczegóły:", error.details);
-      console.error("Wiadomość:", error.message);
+      console.error("Błąd podczas pobierania klientów:", error.message);
       return [];
     }
 
-    if (!data || data.length === 0) {
-      console.warn("Brak danych w tabeli 'clients'");
-    }
-
-    // Transformuj dane żeby dodać country_name do głównego obiektu
     const transformedData = data.map(client => ({
       ...client,
       country_name: client.countries?.name || null
     }));
-
-    console.log("Pobrano rekordów:", transformedData?.length || 0);
-    console.log("Pierwsze rekordy:", transformedData?.slice(0, 3));
 
     return transformedData || [];
   } catch (catchError) {

@@ -25,7 +25,6 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [topCountries, setTopCountries] = useState<{ country: string; count: number }[]>([])
   const [recentClients, setRecentClients] = useState<Client[]>([])
-  const [forceUpdate, setForceUpdate] = useState(0)
   const [upcomingExpirations, setUpcomingExpirations] = useState<Client[]>([])
   const [quarterlyData, setQuarterlyData] = useState<QuarterlyData[]>([])
   const [quarterlyLoading, setQuarterlyLoading] = useState(true)
@@ -38,38 +37,26 @@ export default function Dashboard() {
       setIsLoading(true)
       try {
         const data = await getClients()
-        console.log("Pobrani klienci:", data.length, "rekordów")
         setClients(data)
 
-        // Obliczanie liczby klientów z poszczególnych krajów
         const countriesMap = new Map<string, number>()
-
         data.forEach(client => {
           if (client.country_name) {
-            const country = client.country_name
-            countriesMap.set(country, (countriesMap.get(country) || 0) + 1)
+            countriesMap.set(client.country_name, (countriesMap.get(client.country_name) || 0) + 1)
           }
         })
 
-        console.log("Mapa krajów:", Object.fromEntries(countriesMap))
-
-        // Sortowanie krajów według liczby klientów i wybieranie 6 najpopularniejszych
         const sortedCountries = Array.from(countriesMap.entries())
           .sort((a, b) => b[1] - a[1])
           .slice(0, 6)
           .map(([country, count]) => ({ country, count }))
-
-        console.log("Posortowane kraje (top 6):", sortedCountries)
         setTopCountries(sortedCountries)
 
-        // Pobieranie ostatnio dodanych klientów (sortowanie po CreatedDate)
         const sortedClients = [...data].sort((a, b) => {
           const dateA = a.CreatedDate ? new Date(a.CreatedDate).getTime() : 0
           const dateB = b.CreatedDate ? new Date(b.CreatedDate).getTime() : 0
-          return dateB - dateA // Sortowanie od najnowszych do najstarszych
-        }).slice(0, 5) // Pobierz 5 najnowszych klientów
-
-        console.log("Ostatnio dodani klienci:", sortedClients)
+          return dateB - dateA
+        }).slice(0, 5)
         setRecentClients(sortedClients)
 
         // Pobieranie klientów z DataZakLegPob w ciągu najbliższych 6 miesięcy
@@ -91,14 +78,7 @@ export default function Dashboard() {
           })
           .slice(0, 5) // Pobierz 5 najbliższych dat
 
-        console.log("Klienci z datami zakończenia w ciągu 6 miesięcy:", clientsWithExpiration)
         setUpcomingExpirations(clientsWithExpiration)
-
-        // Wymuszenie przerenderowania po załadowaniu danych
-        setTimeout(() => {
-          setForceUpdate(prev => prev + 1)
-          window.dispatchEvent(new Event('resize'))
-        }, 100)
       } catch (error) {
         console.error("Błąd podczas pobierania klientów:", error)
         toast({
@@ -120,7 +100,6 @@ export default function Dashboard() {
       setQuarterlyLoading(true)
       try {
         const data = await getQuarterlyClientData()
-        console.log("Dane kwartalne:", data)
         setQuarterlyData(data)
       } catch (error) {
         console.error("Błąd podczas pobierania danych kwartalnych:", error)
@@ -136,11 +115,6 @@ export default function Dashboard() {
 
     fetchQuarterlyData()
   }, [])
-
-  // Monitorowanie stanu topCountries
-  useEffect(() => {
-    console.log("Stan topCountries został zaktualizowany:", topCountries)
-  }, [topCountries])
 
   // Liczba aktywnych klientów (status !== "zakończony")
   const activeClientsCount = clients.filter(client =>
@@ -175,201 +149,67 @@ export default function Dashboard() {
     )
   }
 
-  useEffect(() => {
-    // Zwiększ opóźnienie renderowania wykresu
-    if (!isLoading && topCountries.length > 0) {
-      setTimeout(() => {
-        setForceUpdate(prev => prev + 1)
-        window.dispatchEvent(new Event('resize'))
-      }, 500) // Zwiększ opóźnienie do 500ms
-    }
-  }, [isLoading, topCountries])
-
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-8">
-      <div className="space-y-8">
-        <GreetingRow 
-          name="Użytkowniku" 
-          stats={{ appointments: upcomingExpirations.length || 4, urgent: urgentCount }} 
-        />
+    <div className="flex flex-col gap-6">
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      {/* ── ROW 1: Greeting – full width ───────────────────────────────── */}
+      <GreetingRow
+        name="Użytkowniku"
+        stats={{ appointments: upcomingExpirations.length || 4, urgent: urgentCount }}
+      />
+
+      {/* ── ROW 2: Stat Cards – 4 columns ──────────────────────────────── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard
+          label="Aktywni klienci"
+          value={isLoading ? "..." : activeClientsCount}
+          delta="+12"
+          trend="up"
+          colorClass="bg-brand"
+          subtitle="w tym miesiącu"
+        />
+        <StatCard
+          label="Sprawy w toku"
+          value={isLoading ? "..." : clients.filter(c => c.Status?.toLowerCase() === "w trakcie" || c.Status?.toLowerCase() === "weryfikacja").length}
+          delta="-44"
+          trend="down"
+          colorClass="bg-warn"
+          subtitle="82 zakończone"
+        />
+        <StatCard
+          label="Terminy (7 dni)"
+          value={upcomingExpirations.length || 23}
+          colorClass="bg-pobyt"
+          subtitle="4 dziś, 6 jutro"
+        />
+        <StatCard
+          label="Przychód (MTD)"
+          value="68 400 zł"
+          delta="+18%"
+          trend="up"
+          colorClass="bg-success"
+          subtitle="cel: 85 000 zł"
+        />
+      </div>
+
+      {/* ── ROW 3: Main 2-column section ───────────────────────────────── */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1.35fr_1fr] gap-6 items-start">
+
+        {/* LEFT COLUMN: Attention + Pipeline */}
+        <div className="flex flex-col gap-6">
           <AttentionPanel clients={clients} isLoading={isLoading} />
           <PipelinePanel clients={clients} isLoading={isLoading} />
         </div>
 
-        <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="overview">Przegląd</TabsTrigger>
-            <TabsTrigger value="website-analytics">Analityka Strony</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <StatCard 
-                label="Wszyscy klienci" 
-                value={isLoading ? "..." : clients.length} 
-                colorClass="bg-brand"
-              />
-              <StatCard 
-                label="Aktywni klienci" 
-                value={isLoading ? "..." : activeClientsCount} 
-                colorClass="bg-pobyt"
-              />
-              <StatCard 
-                label="Oczekujące faktury" 
-                value="12" 
-                delta="3"
-                trend="down"
-                colorClass="bg-warn"
-              />
-              <StatCard 
-                label="Aktywne projekty" 
-                value="24" 
-                delta="4"
-                trend="up"
-                colorClass="bg-success"
-              />
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-              <RoleGuard allowedRoles={["boss", "admin"]}>
-                <Card className="col-span-4">
-                  <CardHeader>
-                    <CardTitle>Kraje pochodzenia klientów</CardTitle>
-                    <CardDescription>Top 6 krajów według liczby klientów</CardDescription>
-                  </CardHeader>
-                  <CardContent className="h-80">
-                    {isLoading ? (
-                      <div className="h-full flex items-center justify-center">
-                        <p>Ładowanie danych...</p>
-                      </div>
-                    ) : topCountries.length > 0 ? (
-                      <CountriesChart data={topCountries} />
-                    ) : (
-                      <div className="h-full flex flex-col items-center justify-center gap-2">
-                        <Globe className="h-12 w-12 text-muted-foreground" />
-                        <p className="text-muted-foreground">Brak danych o krajach pochodzenia</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </RoleGuard>
-
-              <Card className="col-span-3">
-                <CardHeader>
-                  <CardTitle>Wzrost liczby klientów</CardTitle>
-                  <CardDescription>Kwartalne dane nowych klientów (na podstawie dat złożenia wniosków)</CardDescription>
-                </CardHeader>
-                <CardContent className="h-80">
-                  {quarterlyLoading ? (
-                    <div className="h-full flex items-center justify-center">
-                      <p>Ładowanie danych kwartalnych...</p>
-                    </div>
-                  ) : quarterlyData.length > 0 ? (
-                    <QuarterlyGrowthChart data={quarterlyData} />
-                  ) : (
-                    <div className="h-full flex flex-col items-center justify-center gap-2">
-                      <Activity className="h-12 w-12 text-muted-foreground" />
-                      <p className="text-muted-foreground">Brak danych kwartalnych</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <Card className="col-span-3">
-                <CardHeader>
-                  <CardTitle>Nadchodzące Zakończenie Legalnego Pobytu</CardTitle>
-                  <CardDescription>Klienci z kończącym się legalnym pobytem w ciągu najbliższych 6 miesięcy</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {isLoading ? (
-                      <div className="py-8 flex items-center justify-center">
-                        <p>Ładowanie danych...</p>
-                      </div>
-                    ) : upcomingExpirations.length > 0 ? (
-                      upcomingExpirations.map((client) => {
-                        const expirationDate = new Date(client.DataZakLegPob!)
-                        const today = new Date()
-                        const diffTime = expirationDate.getTime() - today.getTime()
-                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-                        let timeLabel = ""
-                        if (diffDays < 0) {
-                          timeLabel = "Przekroczono"
-                        } else if (diffDays === 0) {
-                          timeLabel = "Dziś"
-                        } else if (diffDays === 1) {
-                          timeLabel = "Jutro"
-                        } else {
-                          timeLabel = `Za ${diffDays} dni`
-                        }
-
-                        return (
-                          <div key={client.id} className="flex items-start gap-4">
-                            <div className="mt-1 w-5 h-5 rounded-full border-2 border-primary flex items-center justify-center">
-                              <div className="w-2 h-2 rounded-full bg-primary"></div>
-                            </div>
-                            <div className="flex-1 space-y-1">
-                              <div className="flex items-center justify-between">
-                                <p className="text-sm font-medium leading-none">{client.Name}</p>
-                                <div className="flex items-center gap-2">
-                                  <div className={`text-xs px-2 py-1 rounded-full ${
-                                    diffDays < 0
-                                      ? "bg-destructive/10 text-destructive"
-                                      : diffDays <= 7
-                                        ? "bg-warning/10 text-warning"
-                                        : "bg-primary/10 text-primary"
-                                  }`}>
-                                    {timeLabel}
-                                  </div>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleOpenClientDetails(client)}
-                                    className="h-6 px-2 text-xs"
-                                  >
-                                    <ExternalLink className="h-3 w-3 mr-1" />
-                                    Szczegóły
-                                  </Button>
-                                </div>
-                              </div>
-                              <p className="text-sm text-muted-foreground">
-                                Data zakończenia: {expirationDate.toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                        )
-                      })
-                    ) : (
-                      <div className="py-8 flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                        <p>Brak nadchodzących zakończeń w ciągu najbliższych 6 miesięcy</p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="website-analytics" className="space-y-4">
-            <WebsiteAnalytics />
-          </TabsContent>
-        </Tabs>
+        {/* RIGHT COLUMN: Today Appointments + Mini Chart + Activity Feed */}
+        <div className="flex flex-col gap-6">
+          <TodayAppointments clients={clients} />
+          <MiniGrowthChart clients={clients} />
+          <ActivityFeed clients={recentClients} />
+        </div>
       </div>
 
-      {/* Right Column */}
-      <div className="space-y-8">
-        <TodayAppointments clients={clients} />
-        <MiniGrowthChart clients={clients} />
-        <ActivityFeed clients={recentClients} />
-      </div>
-
-      {/* Modal szczegółów klienta - stays outside the grid for logical structure, 
-          though it doesn't affect layout as it's absolute/fixed */}
+      {/* Modal szczegółów klienta */}
       <ClientDetailsModal
         open={isDetailsModalOpen}
         onOpenChange={setIsDetailsModalOpen}
