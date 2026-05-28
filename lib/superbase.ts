@@ -693,9 +693,7 @@ export async function uploadFormDocument(file: File, clientId: string): Promise<
       return null;
     }
 
-    // Generuj nazwę pliku
     const timestamp = Date.now();
-    const fileExtension = file.name.split('.').pop();
     const fileName = `form_uploads/${clientId}/${timestamp}_${file.name}`;
 
     // Wgraj plik do bucket'a documents
