@@ -32,7 +32,8 @@ interface DocTemplate {
 }
 
 const DOC_TEMPLATES: DocTemplate[] = [
-  { id: 'wniosek-karta', nazwa: 'Wniosek o kartę pobytu', kategoria: 'Pobyt', opis: 'Formularz do Urzędu Wojewódzkiego', pola: ['dane_osobowe', 'adres', 'cel_pobytu', 'okres'], kolor: 'pobyt', popularnosc: 'Najczęstszy' },
+  { id: 'wniosek-pobyt-czasowy', nazwa: 'Wniosek o pobyt czasowy i pracę', kategoria: 'Pobyt', opis: 'Zał. nr 1 — zezwolenie na pobyt czasowy i pracę', pola: ['dane_osobowe', 'adres', 'cel_pobytu', 'pracodawca'], kolor: 'pobyt', popularnosc: 'Najczęstszy' },
+  { id: 'wniosek-karta', nazwa: 'Wniosek o kartę pobytu', kategoria: 'Pobyt', opis: 'Formularz do Urzędu Wojewódzkiego', pola: ['dane_osobowe', 'adres', 'cel_pobytu', 'okres'], kolor: 'pobyt' },
   { id: 'wniosek-wiza', nazwa: 'Wniosek wizowy krajowy', kategoria: 'Wiza', opis: 'Wiza krajowa typu D', pola: ['dane_osobowe', 'paszport', 'cel_pobytu', 'finanse'], kolor: 'visa' },
   { id: 'zezwolenie-praca', nazwa: 'Zezwolenie na pracę', kategoria: 'Praca', opis: 'Wniosek do Urzędu Pracy', pola: ['dane_osobowe', 'pracodawca', 'stanowisko', 'wynagrodzenie'], kolor: 'praca' },
   { id: 'obywatelstwo', nazwa: 'Wniosek o uznanie za obywatela', kategoria: 'Obywatelstwo', opis: 'Dla kwalifikujących się rezydentów', pola: ['dane_osobowe', 'pobyt_historia', 'znajomosc_jezyka'], kolor: 'obywatelstwo' },
