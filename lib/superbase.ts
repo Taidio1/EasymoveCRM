@@ -186,26 +186,11 @@ export async function getClientById(id: string): Promise<Client | null> {
 }
 
 // Dodawanie nowego klienta
-export async function addClient(client: Omit<Client, "id" | "created_at">): Promise<Client | null> {
-  try {
-    console.log("Próba dodania klienta:", client);
-    
-    const { data, error } = await supabase.from("clients").insert([client]).select();
+export async function addClient(client: Omit<Client, "id" | "created_at">): Promise<Client> {
+  const { data, error } = await supabase.from("clients").insert([client]).select().single();
 
-    if (error) {
-      console.error("Szczegółowy błąd Supabase podczas dodawania klienta:");
-      console.error("Kod błędu:", error.code);
-      console.error("Szczegóły:", error.details);
-      console.error("Wiadomość:", error.message);
-      return null;
-    }
-
-    console.log("Klient dodany pomyślnie:", data?.[0]);
-    return data?.[0] || null;
-  } catch (catchError) {
-    console.error("Nieoczekiwany błąd podczas dodawania klienta:", catchError);
-    return null;
-  }
+  if (error) throw error;
+  return data;
 }
 
 // Funkcja aktualizacji klienta

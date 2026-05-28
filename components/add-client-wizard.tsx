@@ -114,7 +114,8 @@ export function AddClientWizard({ open, onOpenChange, onClientCreated }: AddClie
         Email:            values.Email        || null,
         Phone:            values.Phone        || null,
         KrajPoch:         values.KrajPoch     || null,
-        DataZloWnio:      values.DataZloWnio  ? new Date(values.DataZloWnio).toISOString() : null,
+        // noon UTC avoids timezone shift for UTC+ users (e.g. Poland UTC+1/+2)
+        DataZloWnio:      values.DataZloWnio  ? `${values.DataZloWnio}T12:00:00.000Z` : null,
         Birthday:         values.Birthday     || null,
         CelPobytu:        values.CelPobytu    || null,
         PodLegPob:        values.PodLegPob    || null,
@@ -126,7 +127,6 @@ export function AddClientWizard({ open, onOpenChange, onClientCreated }: AddClie
         ZalBlue:          values.ZalBlue,
         CzteZdjecia:      values.CzteZdjecia,
         Pelnomocnictwo:   values.Pelnomocnictwo,
-        // Fields not collected in wizard — set to null/defaults
         Adres:            null,
         StatusPla:        null,
         CreatedDate:      new Date().toISOString(),
@@ -146,8 +146,9 @@ export function AddClientWizard({ open, onOpenChange, onClientCreated }: AddClie
       toast({ title: "Klient dodany", description: `${values.Name} został dodany do systemu.` })
       onClientCreated?.()
       handleClose()
-    } catch {
-      toast({ title: "Błąd", description: "Nie udało się dodać klienta.", variant: "destructive" })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Nieznany błąd"
+      toast({ title: "Błąd", description: `Nie udało się dodać klienta: ${message}`, variant: "destructive" })
     } finally {
       setIsSubmitting(false)
     }
