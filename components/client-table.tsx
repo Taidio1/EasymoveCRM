@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { MoreHorizontal, Loader2, ArrowUpDown, ChevronUp, ChevronDown, FileText, Globe, Home, Briefcase, Map, Shield } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { CreateClientModal } from "./create-client-modal"
+import { AddClientWizard } from "./add-client-wizard"
 import { toast } from "@/hooks/use-toast"
 import { type Client, getClients, deleteClient } from "@/lib/superbase"
 import { cn } from "@/lib/utils"
@@ -95,29 +95,29 @@ export default function ClientTable() {
   const [isLoading, setIsLoading] = useState(true)
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'DataZloWnio', direction: 'desc' })
 
-  useEffect(() => {
-    async function fetchClients() {
-      setIsLoading(true)
-      try {
-        const data = await getClients()
-        setClients(data)
-      } catch (error) {
-        console.error("Błąd podczas pobierania klientów:", error)
-        toast({
-          title: "Błąd",
-          description: "Nie udało się pobrać listy klientów. Spróbuj ponownie później.",
-          variant: "destructive",
-        })
-      } finally {
-        setIsLoading(false)
-      }
+  const fetchClients = async () => {
+    setIsLoading(true)
+    try {
+      const data = await getClients()
+      setClients(data)
+    } catch (error) {
+      console.error("Błąd podczas pobierania klientów:", error)
+      toast({
+        title: "Błąd",
+        description: "Nie udało się pobrać listy klientów. Spróbuj ponownie później.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
     }
+  }
 
+  useEffect(() => {
     fetchClients()
   }, [])
 
-  const handleClientCreated = (newClient: Client) => {
-    setClients((prevClients) => [newClient, ...prevClients])
+  const handleClientCreated = () => {
+    fetchClients()
   }
 
   const handleRowClick = (clientId: string) => {
@@ -253,7 +253,7 @@ export default function ClientTable() {
         onNewClientClick={() => setIsCreateModalOpen(true)}
       />
 
-      <CreateClientModal
+      <AddClientWizard
         open={isCreateModalOpen}
         onOpenChange={setIsCreateModalOpen}
         onClientCreated={handleClientCreated}
