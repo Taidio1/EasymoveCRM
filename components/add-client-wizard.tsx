@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -38,6 +38,12 @@ type WizardValues = z.infer<typeof schema>
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const STEP_LABELS = ["Dane kontaktowe", "Szczegóły sprawy", "Notatki i dokumenty"] as const
+
+const STEP_FIELDS: (keyof WizardValues)[][] = [
+  ["Name"],    // krok 0 — Dane kontaktowe
+  ["Status"],  // krok 1 — Szczegóły sprawy
+  [],          // krok 2 — Notatki
+]
 
 const CHECKBOXES: {
   field: keyof Pick<WizardValues, "FormWni" | "ZalNrJed" | "KopiaPasz" | "ZalBlue" | "CzteZdjecia" | "Pelnomocnictwo">
@@ -84,17 +90,17 @@ export function AddClientWizard({ open, onOpenChange, onClientCreated }: AddClie
   const isXSmall                      = useIsMobile(380)
   const { user }                      = useAuth()
 
-  const { register, watch, setValue, handleSubmit, reset, formState: { errors } } = useForm<WizardValues>({
+  const { register, watch, setValue, handleSubmit, reset, trigger, formState: { errors } } = useForm<WizardValues>({
     resolver: zodResolver(schema),
     defaultValues: DEFAULT_VALUES,
   })
 
   // ── Close / reset ──────────────────────────────────────────────────────────
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     reset(DEFAULT_VALUES)
     setStep(0)
     onOpenChange(false)
-  }
+  }, [reset, onOpenChange])
 
   // ── Escape key ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -102,7 +108,7 @@ export function AddClientWizard({ open, onOpenChange, onClientCreated }: AddClie
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") handleClose() }
     window.addEventListener("keydown", handler)
     return () => window.removeEventListener("keydown", handler)
-  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, handleClose])
 
   // ── Submit ─────────────────────────────────────────────────────────────────
   const onSubmit = async (values: WizardValues) => {
@@ -394,7 +400,7 @@ export function AddClientWizard({ open, onOpenChange, onClientCreated }: AddClie
         </div>
 
         {/* ── Sliding content ───────────────────────────────────────────────── */}
-        <div className="overflow-hidden flex-shrink-0">
+        <div className="overflow-x-hidden overflow-y-auto flex-1 min-h-0">
           <div
             className="flex transition-transform duration-[360ms] ease-[cubic-bezier(0.4,0,0.2,1)]"
             style={{ width: "300%", transform: `translateX(-${(step / 3) * 100}%)` }}
@@ -446,7 +452,10 @@ export function AddClientWizard({ open, onOpenChange, onClientCreated }: AddClie
             {step < 2 ? (
               <button
                 type="button"
-                onClick={() => setStep(s => s + 1)}
+                onClick={async () => {
+                  const valid = await trigger(STEP_FIELDS[step])
+                  if (valid) setStep(s => s + 1)
+                }}
                 className="h-9 px-4 rounded-btn bg-brand text-white text-[13px] font-medium hover:bg-brand-deep transition-colors inline-flex items-center gap-1.5"
               >
                 Dalej <ArrowRight size={13} />
