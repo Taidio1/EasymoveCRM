@@ -76,7 +76,7 @@ export default function CalendarPage() {
       })
     } else if (view === "week") {
       const weekStart = new Date(currentDate)
-      weekStart.setDate(currentDate.getDate() - currentDate.getDay() + 1)
+      weekStart.setDate(currentDate.getDate() - ((currentDate.getDay() + 6) % 7))
       const weekEnd = new Date(weekStart)
       weekEnd.setDate(weekStart.getDate() + 6)
       
