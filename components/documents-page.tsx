@@ -527,11 +527,13 @@ interface PreviewProps {
 }
 
 function PreviewView({ template, client, onBack, onNew }: PreviewProps) {
-  const today = new Date().toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' })
   const [isGenerating, setIsGenerating] = useState(false)
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
-  async function generateAndDownload() {
+  async function generate(): Promise<string | null> {
     setIsGenerating(true)
+    setError(null)
     try {
       const res = await fetch("/api/documents/generate", {
         method: "POST",
@@ -540,19 +542,29 @@ function PreviewView({ template, client, onBack, onNew }: PreviewProps) {
       })
       if (!res.ok) {
         const err = await res.json()
-        alert(`Błąd generowania: ${err.error}`)
-        return
+        setError(`Błąd generowania: ${err.error}`)
+        return null
       }
       const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = `${template.id}-${client.Name?.replace(/\s+/g, "_") ?? client.id}.pdf`
-      a.click()
-      URL.revokeObjectURL(url)
+      return URL.createObjectURL(blob)
     } finally {
       setIsGenerating(false)
     }
+  }
+
+  useEffect(() => {
+    generate().then(url => { if (url) setPdfUrl(url) })
+    return () => { if (pdfUrl) URL.revokeObjectURL(pdfUrl) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function handleDownload() {
+    const url = pdfUrl ?? await generate()
+    if (!url) return
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `${template.id}-${client.Name?.replace(/\s+/g, "_") ?? client.id}.pdf`
+    a.click()
   }
 
   return (
@@ -564,109 +576,44 @@ function PreviewView({ template, client, onBack, onNew }: PreviewProps) {
         <ChevronLeft size={13} /> Wróć do edycji
       </button>
 
-      {/* Success banner */}
-      <div
-        className="flex flex-col sm:flex-row items-start sm:items-center gap-3.5 p-[18px] rounded-card mb-5"
-        style={{ background: 'var(--success-soft)', border: '1px solid color-mix(in srgb, var(--success) 40%, transparent)' }}
-      >
-        <div
-          className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-          style={{ background: 'var(--success)' }}
-        >
-          <Check size={20} className="text-white" />
-        </div>
-        <div className="flex-1">
-          <div className="font-display text-[18px] font-medium text-text tracking-semi-tight">Dokument wygenerowany</div>
-          <div className="text-[12px] text-text-dim mt-0.5">{template.nazwa} · {client.Name}</div>
+      {/* Top bar */}
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <div>
+          <div className="font-display text-[18px] font-medium text-text tracking-semi-tight">{template.nazwa}</div>
+          <div className="text-[12px] text-text-dim mt-0.5">{client.Name}</div>
         </div>
         <div className="flex gap-2 flex-wrap">
           <button
-            onClick={generateAndDownload}
-            disabled={isGenerating}
+            onClick={handleDownload}
+            disabled={isGenerating || !pdfUrl}
             className="inline-flex items-center gap-1.5 px-3 h-8 rounded-btn text-[12.5px] font-semibold text-white cursor-pointer disabled:opacity-50"
             style={{ background: 'var(--brand)', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}
           >
-            {isGenerating ? 'Generowanie…' : <><Download size={13} /> Pobierz PDF</>}
+            <Download size={13} /> Pobierz PDF
           </button>
-          <button className="inline-flex items-center gap-1.5 px-3 h-8 rounded-btn border border-border bg-transparent text-text text-[12.5px] font-medium hover:bg-surface-hover transition-colors cursor-pointer">
-            <Mail size={13} /> Wyślij do klienta
+          <button
+            onClick={onNew}
+            className="inline-flex items-center gap-1.5 px-3 h-8 rounded-btn border border-border bg-transparent text-text text-[12.5px] font-medium hover:bg-surface-hover transition-colors cursor-pointer"
+          >
+            Nowy dokument
           </button>
         </div>
       </div>
 
-      {/* Document render */}
-      <div
-        className="bg-white rounded-card text-[#111]"
-        style={{
-          padding: 'clamp(24px, 5vw, 56px) clamp(20px, 7vw, 72px)',
-          boxShadow: '0 12px 40px rgba(0,0,0,0.2)',
-          fontFamily: 'var(--font-sans), sans-serif',
-        }}
-      >
-        <div className="text-right text-[11px] text-[#555] mb-10" style={{ fontFamily: 'var(--font-mono, monospace)' }}>
-          Warszawa, {today}
-        </div>
-
-        <h1 className="text-[26px] font-medium text-center mb-1.5 tracking-tight" style={{ fontFamily: 'var(--font-display, Georgia, serif)' }}>
-          {template.nazwa}
-        </h1>
-        <p className="text-center text-[12px] text-[#666] mb-10 italic">
-          złożony na podstawie art. 144 ust. 1 ustawy o cudzoziemcach
-        </p>
-
-        <DocSection title="I. Dane osobowe wnioskodawcy">
-          <DocGrid>
-            <DocRow label="Imię:" value={client.Name?.split(' ')[0] || '—'} />
-            <DocRow label="Nazwisko:" value={client.Name?.split(' ').slice(1).join(' ') || '—'} />
-            <DocRow label="Obywatelstwo:" value={client.KrajPoch || '—'} />
-            <DocRow label="Numer dokumentu:" value={client.NumerSprawy || '—'} mono />
-            <DocRow label="Data urodzenia:" value={client.Birthday ? new Date(client.Birthday).toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'} />
-          </DocGrid>
-        </DocSection>
-
-        <DocSection title="II. Adres zameldowania w Polsce">
-          <p className="text-[13px] leading-relaxed">{client.Adres || 'Brak danych adresowych'}</p>
-        </DocSection>
-
-        <DocSection title="III. Cel pobytu">
-          <p className="text-[13px] leading-relaxed">
-            Wnioskodawca ubiega się o wydanie dokumentu &quot;{client.CelPobytu || template.nazwa}&quot; w związku
-            z planowanym długoterminowym pobytem na terytorium Rzeczypospolitej Polskiej.
-          </p>
-        </DocSection>
-
-        <DocSection title="IV. Oświadczenia">
-          <p className="text-[12px] leading-relaxed text-[#333]">
-            Oświadczam, że wszystkie dane podane w niniejszym wniosku są prawdziwe.
-            Jestem świadomy odpowiedzialności karnej za złożenie fałszywych oświadczeń.
-          </p>
-        </DocSection>
-
-        <div className="grid grid-cols-2 gap-10 mt-16">
-          <div>
-            <div className="border-t border-[#333] pt-1.5 text-[11px] text-[#666]">Podpis wnioskodawcy</div>
+      {/* PDF preview */}
+      <div className="rounded-card overflow-hidden border border-border" style={{ height: '80vh' }}>
+        {isGenerating && (
+          <div className="flex items-center justify-center h-full text-[13px] text-text-mute gap-2">
+            <span className="animate-spin inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full" />
+            Generowanie podglądu…
           </div>
-          <div>
-            <div className="border-t border-[#333] pt-1.5 text-[11px] text-[#666]">Data i podpis doradcy</div>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex gap-2.5 mt-5 justify-end">
-        <button
-          onClick={onNew}
-          className="inline-flex items-center gap-1.5 px-3 h-8 rounded-btn border border-border bg-transparent text-text text-[12.5px] font-medium hover:bg-surface-hover transition-colors cursor-pointer"
-        >
-          Nowy dokument
-        </button>
-        <button
-          onClick={generateAndDownload}
-          disabled={isGenerating}
-          className="inline-flex items-center gap-1.5 px-3 h-8 rounded-btn text-[12.5px] font-semibold text-white cursor-pointer disabled:opacity-50"
-          style={{ background: 'var(--brand)', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}
-        >
-          {isGenerating ? 'Generowanie…' : <><Download size={13} /> Pobierz PDF</>}
-        </button>
+        )}
+        {error && (
+          <div className="flex items-center justify-center h-full text-[13px] text-red-500 px-6 text-center">{error}</div>
+        )}
+        {pdfUrl && !isGenerating && (
+          <iframe src={pdfUrl} className="w-full h-full" title="Podgląd dokumentu" />
+        )}
       </div>
     </div>
   )
