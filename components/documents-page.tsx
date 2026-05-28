@@ -536,7 +536,7 @@ function PreviewView({ template, client, onBack, onNew }: PreviewProps) {
       const res = await fetch("/api/documents/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templateId: template.id, clientId: client.id }),
+        body: JSON.stringify({ templateId: template.id, client }),
       })
       if (!res.ok) {
         const err = await res.json()

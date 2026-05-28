@@ -1,20 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { generateDocument } from "@/lib/document-generator"
-import { getClients } from "@/lib/superbase"
+import type { Client } from "@/lib/superbase"
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
-  const { templateId, clientId } = body as { templateId: string; clientId: string }
+  const { templateId, client } = body as { templateId: string; client: Client }
 
-  if (!templateId || !clientId) {
-    return NextResponse.json({ error: "templateId and clientId are required" }, { status: 400 })
-  }
-
-  const clients = await getClients()
-  const client = clients.find((c) => c.id === clientId)
-
-  if (!client) {
-    return NextResponse.json({ error: "Client not found" }, { status: 404 })
+  if (!templateId || !client) {
+    return NextResponse.json({ error: "templateId and client are required" }, { status: 400 })
   }
 
   let pdfBytes: Uint8Array
@@ -29,7 +22,7 @@ export async function POST(req: NextRequest) {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${templateId}-${clientId}.pdf"`,
+      "Content-Disposition": `attachment; filename="${templateId}-${client.id}.pdf"`,
     },
   })
 }
