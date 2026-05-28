@@ -2,15 +2,14 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Users, Calendar, FileText, BarChart3 } from "lucide-react"
+import { LayoutDashboard, Users, Calendar, FileText } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const NAV_ITEMS = [
-  { href: "/",         label: "Pulpit",    icon: LayoutDashboard, exact: true  },
-  { href: "/clients",  label: "Klienci",   icon: Users,           exact: false },
-  { href: "/calendar", label: "Terminy",   icon: Calendar,        exact: false },
-  { href: "/reports",  label: "Dokumenty", icon: FileText,        exact: false },
-  { href: "/reports",  label: "Raporty",   icon: BarChart3,       exact: false },
+  { href: "/",         label: "Pulpit",   icon: LayoutDashboard, exact: true  },
+  { href: "/clients",  label: "Klienci",  icon: Users,           exact: false },
+  { href: "/calendar", label: "Terminy",  icon: Calendar,        exact: false },
+  { href: "/reports",  label: "Raporty",  icon: FileText,        exact: false },
 ] as const
 
 export function MobileNav() {
