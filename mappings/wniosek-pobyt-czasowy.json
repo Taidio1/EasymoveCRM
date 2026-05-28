@@ -5,13 +5,13 @@
   "fields": [
     {
       "page": 1,
-      "x": 82,
+      "x": 235,
       "y": 125,
       "dataKey": "Name|uppercase",
       "fontSize": 11,
       "type": "grid",
-      "boxWidth": 14.2,
-      "maxCharsPerRow": 35,
+      "boxWidth": 13.8,
+      "maxCharsPerRow": 23,
       "rowHeight": 25
     },
     {
