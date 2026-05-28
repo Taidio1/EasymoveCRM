@@ -1,17 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Button } from "@/components/ui/button"
-import { Activity, Globe, ExternalLink } from "lucide-react"
-import { getClients, getQuarterlyClientData, type Client, type QuarterlyData } from "@/lib/superbase"
+import { getClients, type Client } from "@/lib/superbase"
 import { toast } from "@/hooks/use-toast"
-import { RoleGuard } from "@/components/role-guard"
-import { CountriesChart } from "./countries-chart"
-import { QuarterlyGrowthChart } from "./quarterly-growth-chart"
 import { ClientDetailsModal } from "./client-details-modal"
-import { WebsiteAnalytics } from "./website-analytics"
 import { GreetingRow } from "./dashboard/greeting-row"
 import { StatCard } from "./dashboard/stat-card"
 import { AttentionPanel } from "./dashboard/attention-panel"
@@ -23,11 +15,8 @@ import { ActivityFeed } from "./dashboard/activity-feed"
 export default function Dashboard() {
   const [clients, setClients] = useState<Client[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [topCountries, setTopCountries] = useState<{ country: string; count: number }[]>([])
   const [recentClients, setRecentClients] = useState<Client[]>([])
   const [upcomingExpirations, setUpcomingExpirations] = useState<Client[]>([])
-  const [quarterlyData, setQuarterlyData] = useState<QuarterlyData[]>([])
-  const [quarterlyLoading, setQuarterlyLoading] = useState(true)
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
 
@@ -38,19 +27,6 @@ export default function Dashboard() {
       try {
         const data = await getClients()
         setClients(data)
-
-        const countriesMap = new Map<string, number>()
-        data.forEach(client => {
-          if (client.country_name) {
-            countriesMap.set(client.country_name, (countriesMap.get(client.country_name) || 0) + 1)
-          }
-        })
-
-        const sortedCountries = Array.from(countriesMap.entries())
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 6)
-          .map(([country, count]) => ({ country, count }))
-        setTopCountries(sortedCountries)
 
         const sortedClients = [...data].sort((a, b) => {
           const dateA = a.CreatedDate ? new Date(a.CreatedDate).getTime() : 0
@@ -92,28 +68,6 @@ export default function Dashboard() {
     }
 
     fetchClients()
-  }, [])
-
-  // Pobieranie danych kwartalnych
-  useEffect(() => {
-    async function fetchQuarterlyData() {
-      setQuarterlyLoading(true)
-      try {
-        const data = await getQuarterlyClientData()
-        setQuarterlyData(data)
-      } catch (error) {
-        console.error("Błąd podczas pobierania danych kwartalnych:", error)
-        toast({
-          title: "Błąd",
-          description: "Nie udało się pobrać danych kwartalnych. Spróbuj ponownie później.",
-          variant: "destructive",
-        })
-      } finally {
-        setQuarterlyLoading(false)
-      }
-    }
-
-    fetchQuarterlyData()
   }, [])
 
   // Liczba aktywnych klientów (status !== "zakończony")
@@ -159,7 +113,7 @@ export default function Dashboard() {
       />
 
       {/* ── ROW 2: Stat Cards – 4 columns ──────────────────────────────── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
           label="Aktywni klienci"
           value={isLoading ? "..." : activeClientsCount}
@@ -182,14 +136,7 @@ export default function Dashboard() {
           colorClass="bg-pobyt"
           subtitle="4 dziś, 6 jutro"
         />
-        <StatCard
-          label="Przychód (MTD)"
-          value="68 400 zł"
-          delta="+18%"
-          trend="up"
-          colorClass="bg-success"
-          subtitle="cel: 85 000 zł"
-        />
+
       </div>
 
       {/* ── ROW 3: Main 2-column section ───────────────────────────────── */}

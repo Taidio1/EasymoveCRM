@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { FileText, UserPlus, CheckCircle2, MessageSquare } from "lucide-react"
 import { type Client } from "@/lib/superbase"
 
@@ -29,9 +29,14 @@ export function ActivityFeed({ clients = [] }: ActivityFeedProps) {
   return (
     <Card className="bg-surface border-border shadow-none">
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm-plus font-bold text-text uppercase tracking-semi-loose">
-          Ostatnia aktywność
-        </CardTitle>
+        <div className="flex items-start justify-between">
+          <h2 className="text-sm-plus font-bold text-text uppercase tracking-semi-loose">
+            Ostatnia aktywność
+          </h2>
+          <button className="text-xs text-text-mute hover:text-brand transition-colors">
+            Więcej →
+          </button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="relative space-y-6 before:absolute before:left-3.5 before:top-2 before:bottom-2 before:w-px before:bg-border/60">

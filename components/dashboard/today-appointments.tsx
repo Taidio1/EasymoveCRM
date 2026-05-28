@@ -1,5 +1,7 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { ChevronRight } from "lucide-react"
 import { type Client } from "@/lib/superbase"
 
 interface Appointment {
@@ -8,6 +10,7 @@ interface Appointment {
   clientName: string
   caseType: 'visa' | 'pobyt' | 'obywatelstwo' | 'praca'
   caseLabel: string
+  isUrgent?: boolean
 }
 
 interface TodayAppointmentsProps {
@@ -18,52 +21,70 @@ export function TodayAppointments({ clients = [] }: TodayAppointmentsProps) {
   // Map real clients to appointments format for visualization
   const appointments: Appointment[] = clients.slice(0, 4).map((c, i) => ({
     id: c.id,
-    time: ["09:00", "10:30", "13:00", "15:30"][i] || "12:00",
+    time: ["09:00", "10:30", "13:00", "15:00"][i] || "12:00",
     clientName: c.Name,
-    caseType: (c.CelPobytu?.toLowerCase().includes("wiza") ? "visa" : 
-               c.CelPobytu?.toLowerCase().includes("obywatelstwo") ? "obywatelstwo" : 
+    caseType: (c.CelPobytu?.toLowerCase().includes("wiza") ? "visa" :
+               c.CelPobytu?.toLowerCase().includes("obywatelstwo") ? "obywatelstwo" :
                c.CelPobytu?.toLowerCase().includes("praca") ? "praca" : "pobyt") as any,
-    caseLabel: c.CelPobytu || "Pobyt Czasowy"
+    caseLabel: c.CelPobytu || "Pobyt Czasowy",
+    isUrgent: i < 2, // Mark first 2 as urgent for demo
   }))
+
+  const urgentCount = appointments.filter(a => a.isUrgent).length
 
   return (
     <Card className="bg-surface border-border shadow-none">
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm-plus font-bold text-text uppercase tracking-semi-loose">
-          Dzisiejsze spotkania
-        </CardTitle>
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-sm-plus font-bold text-text uppercase tracking-semi-loose">
+              Dzisiejsze terminy
+            </h2>
+            <p className="text-[11px] text-text-mute mt-0.5">
+              {appointments.length} spotkań{urgentCount > 0 ? `, ${urgentCount} pilne` : ""}
+            </p>
+          </div>
+          <Button variant="ghost" size="sm" className="text-xs text-text-mute hover:text-brand gap-1 h-7 px-2">
+            Kalendarz <ChevronRight className="size-3" />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
+        <div className="space-y-3">
           {appointments.length > 0 ? appointments.map((apt) => (
-            <div key={apt.id} className="flex items-center justify-between group">
-              <div className="flex items-center gap-4">
-                <span className="font-mono text-xs font-bold text-brand bg-brand-soft/30 px-2 py-1 rounded-chip">
-                  {apt.time}
+            <div key={apt.id} className="flex items-center gap-3 group cursor-pointer">
+              {/* Time */}
+              <div className="w-[46px] shrink-0">
+                <span className="font-mono text-xs font-bold text-text">{apt.time}</span>
+              </div>
+
+              {/* Divider dot */}
+              <div className={cn("w-2 h-2 rounded-full shrink-0", {
+                "bg-pobyt": apt.caseType === 'pobyt',
+                "bg-visa": apt.caseType === 'visa',
+                "bg-obywatelstwo": apt.caseType === 'obywatelstwo',
+                "bg-praca": apt.caseType === 'praca',
+              })} />
+
+              {/* Client + case */}
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-semibold text-text truncate block group-hover:text-brand transition-colors">
+                  {apt.clientName}
                 </span>
-                <div className="flex flex-col">
-                  <span className="text-sm font-semibold text-text group-hover:text-brand transition-colors">
-                    {apt.clientName}
-                  </span>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <div className={cn("w-1.5 h-1.5 rounded-full", {
-                      "bg-pobyt": apt.caseType === 'pobyt',
-                      "bg-visa": apt.caseType === 'visa',
-                      "bg-obywatelstwo": apt.caseType === 'obywatelstwo',
-                      "bg-praca": apt.caseType === 'praca',
-                    })} />
-                    <span className="text-2xs text-text-mute uppercase tracking-wider">
-                      {apt.caseLabel}
-                    </span>
-                  </div>
-                </div>
+                <span className="text-[11px] text-text-mute truncate block">
+                  {apt.caseLabel}
+                </span>
               </div>
-              <div className="w-8 h-8 rounded-btn border border-border flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="w-1.5 h-1.5 rounded-full bg-border-strong" />
-              </div>
+
+              {/* Urgent badge */}
+              {apt.isUrgent && (
+                <span className="text-[10px] font-bold text-danger border border-danger/30 bg-danger/10 px-1.5 py-0.5 rounded shrink-0">
+                  PILNE
+                </span>
+              )}
             </div>
           )) : (
-            <p className="text-sm text-muted-foreground py-4 text-center">Brak zaplanowanych spotkań.</p>
+            <p className="text-sm text-text-mute py-4 text-center">Brak zaplanowanych spotkań.</p>
           )}
         </div>
       </CardContent>

@@ -67,6 +67,7 @@ export function WebsiteAnalytics() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<string>('');
+  const [dataSource, setDataSource] = useState<'ga4' | 'mock'>('mock');
 
   useEffect(() => {
     async function fetchAnalytics() {
@@ -78,6 +79,7 @@ export function WebsiteAnalytics() {
         if (result.success) {
           setData(result.data);
           setLastUpdated(result.lastUpdated);
+          setDataSource(result.source ?? 'mock');
         }
       } catch (error) {
         console.error('Błąd pobierania analityki:', error);
@@ -141,7 +143,19 @@ export function WebsiteAnalytics() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">Analityka strony www.easy-move.pl</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold">Analityka strony www.easy-move.pl</h3>
+            {dataSource === 'mock' && (
+              <Badge variant="outline" className="text-xs text-amber-600 border-amber-400">
+                DEMO
+              </Badge>
+            )}
+            {dataSource === 'ga4' && (
+              <Badge variant="outline" className="text-xs text-green-600 border-green-400">
+                GA4 Live
+              </Badge>
+            )}
+          </div>
           <p className="text-sm text-muted-foreground">
             Ostatnia aktualizacja: {new Date(lastUpdated).toLocaleString('pl-PL')}
           </p>

@@ -14,8 +14,7 @@ import { PdfPreview } from "./pdf-preview"
 import { getClients, type Client } from "@/lib/superbase"
 import { documentGenerators, type DocumentType } from "@/lib/pdf-generator"
 import { FormGenerator } from "./form-generator"
-
-// Dodaj import testowego klienta
+import { AdsAnalytics } from "./ads-analytics"
 
 export default function ReportsPage() {
   const [clients, setClients] = useState<Client[]>([])
@@ -28,15 +27,12 @@ export default function ReportsPage() {
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null)
   const [selectedClients, setSelectedClients] = useState<string[]>([])
 
-  // Pobieranie klientów
   useEffect(() => {
     const fetchClients = async () => {
       setIsLoading(true)
       try {
         const data = await getClients()
         setClients(data)
-        // Dodaj testowego klienta do listy
-
       } catch (error) {
         console.error("Błąd podczas pobierania klientów:", error)
         toast({
@@ -48,11 +44,9 @@ export default function ReportsPage() {
         setIsLoading(false)
       }
     }
-
     fetchClients()
   }, [])
 
-  // Filtrowanie klientów
   useEffect(() => {
     if (searchTerm.trim() === "") {
       setFilteredClients(clients)
@@ -67,117 +61,61 @@ export default function ReportsPage() {
     }
   }, [searchTerm, clients])
 
-  // Generowanie dokumentu dla pojedynczego klienta
   const generateSingleDocument = async () => {
     if (!selectedClient) {
-      toast({
-        title: "Brak klienta",
-        description: "Wybierz klienta, aby wygenerować dokument.",
-        variant: "destructive",
-      })
+      toast({ title: "Brak klienta", description: "Wybierz klienta, aby wygenerować dokument.", variant: "destructive" })
       return
     }
-
     setIsGenerating(true)
-
     try {
-      // Wybór odpowiedniego generatora dokumentu
       const generator = documentGenerators[selectedDocType]
-
-      // Generowanie dokumentu
       const doc = (generator as any)(selectedClient)
-
-      // Konwersja do URL danych
-      const pdfDataUrl = doc.output("dataurlstring")
-
-      // Ustawienie URL do podglądu
-      setPdfPreviewUrl(pdfDataUrl)
+      setPdfPreviewUrl(doc.output("dataurlstring"))
     } catch (error) {
       console.error("Błąd podczas generowania dokumentu:", error)
-      toast({
-        title: "Błąd",
-        description: "Nie udało się wygenerować dokumentu.",
-        variant: "destructive",
-      })
+      toast({ title: "Błąd", description: "Nie udało się wygenerować dokumentu.", variant: "destructive" })
     } finally {
       setIsGenerating(false)
     }
   }
 
-  // Generowanie listy klientów
   const generateClientsList = async () => {
     if (selectedClients.length === 0) {
-      toast({
-        title: "Brak wybranych klientów",
-        description: "Wybierz co najmniej jednego klienta, aby wygenerować listę.",
-        variant: "destructive",
-      })
+      toast({ title: "Brak wybranych klientów", description: "Wybierz co najmniej jednego klienta.", variant: "destructive" })
       return
     }
-
     setIsGenerating(true)
-
     try {
-      // Filtrowanie wybranych klientów
       const selectedClientsList = clients.filter((client) => selectedClients.includes(client.id))
-
-      // Generowanie dokumentu
       const doc = documentGenerators.clientsList(selectedClientsList)
-
-      // Konwersja do URL danych
-      const pdfDataUrl = doc.output("dataurlstring")
-
-      // Ustawienie URL do podglądu
-      setPdfPreviewUrl(pdfDataUrl)
+      setPdfPreviewUrl(doc.output("dataurlstring"))
     } catch (error) {
       console.error("Błąd podczas generowania listy klientów:", error)
-      toast({
-        title: "Błąd",
-        description: "Nie udało się wygenerować listy klientów.",
-        variant: "destructive",
-      })
+      toast({ title: "Błąd", description: "Nie udało się wygenerować listy klientów.", variant: "destructive" })
     } finally {
       setIsGenerating(false)
     }
   }
 
-  // Generowanie raportu statystycznego
   const generateStatisticsReport = async () => {
     setIsGenerating(true)
-
     try {
-      // Generowanie dokumentu
       const doc = documentGenerators.statisticsReport(clients)
-
-      // Konwersja do URL danych
-      const pdfDataUrl = doc.output("dataurlstring")
-
-      // Ustawienie URL do podglądu
-      setPdfPreviewUrl(pdfDataUrl)
+      setPdfPreviewUrl(doc.output("dataurlstring"))
     } catch (error) {
       console.error("Błąd podczas generowania raportu statystycznego:", error)
-      toast({
-        title: "Błąd",
-        description: "Nie udało się wygenerować raportu statystycznego.",
-        variant: "destructive",
-      })
+      toast({ title: "Błąd", description: "Nie udało się wygenerować raportu statystycznego.", variant: "destructive" })
     } finally {
       setIsGenerating(false)
     }
   }
 
-  // Obsługa zaznaczania klientów
   const handleClientSelect = (clientId: string) => {
-    setSelectedClients((prev) => {
-      if (prev.includes(clientId)) {
-        return prev.filter((id) => id !== clientId)
-      } else {
-        return [...prev, clientId]
-      }
-    })
+    setSelectedClients((prev) =>
+      prev.includes(clientId) ? prev.filter((id) => id !== clientId) : [...prev, clientId]
+    )
   }
 
-  // Obsługa zaznaczania wszystkich klientów
   const handleSelectAll = () => {
     if (selectedClients.length === filteredClients.length) {
       setSelectedClients([])
@@ -190,16 +128,22 @@ export default function ReportsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">Raporty</h1>
-        <p className="text-muted-foreground">Generuj dokumenty i raporty dla klientów</p>
+        <p className="text-muted-foreground">Analityka kampanii i generowanie dokumentów</p>
       </div>
 
-      <Tabs defaultValue="documents" className="space-y-4">
+      <Tabs defaultValue="analytics" className="space-y-4">
         <TabsList>
+          <TabsTrigger value="analytics">Analityka strony</TabsTrigger>
           <TabsTrigger value="documents">Dokumenty klienta</TabsTrigger>
           <TabsTrigger value="lists">Listy klientów</TabsTrigger>
           <TabsTrigger value="statistics">Statystyki</TabsTrigger>
           <TabsTrigger value="forms">Formularze urzędowe</TabsTrigger>
         </TabsList>
+
+        {/* Zakładka analityki Google Ads */}
+        <TabsContent value="analytics" className="space-y-4">
+          <AdsAnalytics />
+        </TabsContent>
 
         {/* Zakładka dokumentów klienta */}
         <TabsContent value="documents" className="space-y-4">
@@ -239,9 +183,7 @@ export default function ReportsPage() {
                       {filteredClients.map((client) => (
                         <div
                           key={client.id}
-                          className={`p-3 cursor-pointer hover:bg-accent ${
-                            selectedClient?.id === client.id ? "bg-accent" : ""
-                          }`}
+                          className={`p-3 cursor-pointer hover:bg-accent ${selectedClient?.id === client.id ? "bg-accent" : ""}`}
                           onClick={() => setSelectedClient(client)}
                         >
                           <div className="font-medium">{client.Name || "Brak nazwy"}</div>
@@ -272,15 +214,9 @@ export default function ReportsPage() {
 
               <Button className="w-full" onClick={generateSingleDocument} disabled={!selectedClient || isGenerating}>
                 {isGenerating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generowanie...
-                  </>
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generowanie...</>
                 ) : (
-                  <>
-                    <FileText className="mr-2 h-4 w-4" />
-                    Generuj dokument
-                  </>
+                  <><FileText className="mr-2 h-4 w-4" />Generuj dokument</>
                 )}
               </Button>
             </CardContent>
@@ -351,21 +287,11 @@ export default function ReportsPage() {
                 </div>
               </div>
 
-              <Button
-                className="w-full"
-                onClick={generateClientsList}
-                disabled={selectedClients.length === 0 || isGenerating}
-              >
+              <Button className="w-full" onClick={generateClientsList} disabled={selectedClients.length === 0 || isGenerating}>
                 {isGenerating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generowanie...
-                  </>
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generowanie...</>
                 ) : (
-                  <>
-                    <Users className="mr-2 h-4 w-4" />
-                    Generuj listę klientów
-                  </>
+                  <><Users className="mr-2 h-4 w-4" />Generuj listę klientów</>
                 )}
               </Button>
             </CardContent>
@@ -393,30 +319,22 @@ export default function ReportsPage() {
 
               <Button className="w-full" onClick={generateStatisticsReport} disabled={isGenerating}>
                 {isGenerating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generowanie...
-                  </>
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generowanie...</>
                 ) : (
-                  <>
-                    <BarChart className="mr-2 h-4 w-4" />
-                    Generuj raport statystyczny
-                  </>
+                  <><BarChart className="mr-2 h-4 w-4" />Generuj raport statystyczny</>
                 )}
               </Button>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Nowa zakładka formularzy urzędowych */}
+        {/* Zakładka formularzy urzędowych */}
         <TabsContent value="forms" className="space-y-4">
           <FormGenerator clients={clients} />
         </TabsContent>
       </Tabs>
 
-      {/* Podgląd PDF */}
       {pdfPreviewUrl && <PdfPreview pdfData={pdfPreviewUrl} onClose={() => setPdfPreviewUrl(null)} />}
     </div>
   )
 }
-

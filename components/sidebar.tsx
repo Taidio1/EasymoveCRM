@@ -16,6 +16,7 @@ import {
   Settings,
   BarChart3,
   FileText,
+  FolderOpen,
   LogOut,
   Calendar,
   Search,
@@ -34,7 +35,7 @@ const navItems = [
   { title: "Klienci", href: "/clients", icon: Users, badge: "247" },
   { title: "Terminy", href: "/calendar", icon: Calendar, badge: "4" },
   { title: "Raporty", href: "/reports", icon: BarChart3 },
-  { title: "Dokumenty", href: "/reports", icon: FileText }, // Placeholder href
+  { title: "Dokumenty", href: "/documents", icon: FolderOpen },
 ]
 
 export default function Sidebar() {

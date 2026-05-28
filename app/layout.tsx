@@ -1,4 +1,4 @@
-import { IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google'
+import { IBM_Plex_Sans, IBM_Plex_Mono, Fraunces } from 'next/font/google'
 import './globals.css'
 import type { Metadata } from 'next'
 import { AppProviders } from './AppProviders'
@@ -17,6 +17,13 @@ const plexMono = IBM_Plex_Mono({
   display: 'swap',
 })
 
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-display',
+  display: 'swap',
+})
+
 export const metadata: Metadata = {
   title: 'Easy Move CRM',
   description: 'Easy move management system',
@@ -24,7 +31,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pl" suppressHydrationWarning className={`${plexSans.variable} ${plexMono.variable}`}>
+    <html lang="pl" suppressHydrationWarning className={`${plexSans.variable} ${plexMono.variable} ${fraunces.variable}`}>
       <body className="font-sans">
         <AppProviders>{children}</AppProviders>
       </body>

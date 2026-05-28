@@ -1,6 +1,6 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Bar, BarChart, ResponsiveContainer, XAxis, Tooltip } from "recharts"
 import { type Client } from "@/lib/superbase"
 
@@ -23,9 +23,18 @@ export function MiniGrowthChart({ clients = [] }: MiniGrowthChartProps) {
   return (
     <Card className="bg-surface border-border shadow-none overflow-hidden">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm-plus font-bold text-text uppercase tracking-semi-loose">
-          Wzrost spraw (7 dni)
-        </CardTitle>
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-sm-plus font-bold text-text uppercase tracking-semi-loose">
+              Nowe sprawy w tygodniu
+            </h2>
+            <p className="text-[11px] text-text-mute mt-0.5">Nowe sprawy w ostatnim tygodniu</p>
+          </div>
+          <div className="flex items-center gap-3 text-[10px] text-text-mute">
+            <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-sm bg-brand" />Nowe</span>
+            <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-sm bg-surface-raised border border-border" />Zakończone</span>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="p-0 h-[120px] relative">
         <ResponsiveContainer width="100%" height="100%">
