@@ -1,23 +1,33 @@
 import fs from "fs/promises"
 import path from "path"
-import { PDFDocument, StandardFonts, type PDFFont } from "pdf-lib"
+import { PDFDocument, StandardFonts, type PDFFont, type PDFPage } from "pdf-lib"
 import fontkit from "@pdf-lib/fontkit"
 import type { Client } from "@/lib/superbase"
-import type { DocumentMapping } from "@/lib/document-types"
+import type { DocumentMapping, FieldMapping } from "@/lib/document-types"
 import { resolveField } from "@/lib/document-resolver"
 
-function truncateToWidth(
-  text: string,
-  maxWidth: number,
-  font: PDFFont,
-  fontSize: number,
-): string {
+function truncateToWidth(text: string, maxWidth: number, font: PDFFont, fontSize: number): string {
   if (font.widthOfTextAtSize(text, fontSize) <= maxWidth) return text
   let truncated = text
   while (truncated.length > 0 && font.widthOfTextAtSize(truncated + "…", fontSize) > maxWidth) {
     truncated = truncated.slice(0, -1)
   }
   return truncated + "…"
+}
+
+function drawGridField(page: PDFPage, text: string, field: FieldMapping, font: PDFFont): void {
+  const boxWidth = field.boxWidth ?? 14.2
+  const maxCharsPerRow = field.maxCharsPerRow ?? 35
+  const rowHeight = field.rowHeight ?? 25
+  const chars = text.toUpperCase().split("")
+
+  chars.forEach((char, index) => {
+    if (char === " ") return
+    const rowIndex = Math.floor(index / maxCharsPerRow)
+    const charX = field.x + (index % maxCharsPerRow) * boxWidth
+    const charY = field.y - rowIndex * rowHeight
+    page.drawText(char, { x: charX, y: charY, size: field.fontSize, font })
+  })
 }
 
 export async function generateDocument(templateId: string, client: Client): Promise<Uint8Array> {
@@ -52,16 +62,12 @@ export async function generateDocument(templateId: string, client: Client): Prom
     const page = pages[field.page - 1]
     if (!page) continue
 
-    const text = field.maxWidth
-      ? truncateToWidth(value, field.maxWidth, font, field.fontSize)
-      : value
-
-    page.drawText(text, {
-      x: field.x,
-      y: field.y,
-      size: field.fontSize,
-      font,
-    })
+    if (field.type === "grid") {
+      drawGridField(page, value, field, font)
+    } else {
+      const text = field.maxWidth ? truncateToWidth(value, field.maxWidth, font, field.fontSize) : value
+      page.drawText(text, { x: field.x, y: field.y, size: field.fontSize, font })
+    }
   }
 
   return pdfDoc.save()

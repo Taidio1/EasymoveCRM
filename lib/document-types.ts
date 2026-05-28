@@ -5,6 +5,10 @@ export interface FieldMapping {
   dataKey: string
   fontSize: number
   maxWidth?: number
+  type?: "text" | "grid"
+  boxWidth?: number
+  maxCharsPerRow?: number
+  rowHeight?: number
 }
 
 export interface DocumentMapping {
