@@ -1,0 +1,67 @@
+{
+  "id": "wniosek-pobyt-czasowy",
+  "name": "Wniosek o udzielenie zezwolenia na pobyt czasowy i pracę",
+  "pdfPath": "/forms/wniosek-pobyt-czasowy.pdf",
+  "fields": [
+    {
+      "page": 1,
+      "x": 200,
+      "y": 720,
+      "dataKey": "Name|split_last",
+      "fontSize": 10,
+      "maxWidth": 180
+    },
+    {
+      "page": 1,
+      "x": 200,
+      "y": 700,
+      "dataKey": "Name|split_first",
+      "fontSize": 10,
+      "maxWidth": 150
+    },
+    {
+      "page": 1,
+      "x": 200,
+      "y": 680,
+      "dataKey": "Birthday|day",
+      "fontSize": 10
+    },
+    {
+      "page": 1,
+      "x": 240,
+      "y": 680,
+      "dataKey": "Birthday|month",
+      "fontSize": 10
+    },
+    {
+      "page": 1,
+      "x": 280,
+      "y": 680,
+      "dataKey": "Birthday|year",
+      "fontSize": 10
+    },
+    {
+      "page": 1,
+      "x": 200,
+      "y": 660,
+      "dataKey": "KrajPoch|uppercase",
+      "fontSize": 10,
+      "maxWidth": 180
+    },
+    {
+      "page": 1,
+      "x": 200,
+      "y": 640,
+      "dataKey": "Phone",
+      "fontSize": 10
+    },
+    {
+      "page": 1,
+      "x": 200,
+      "y": 620,
+      "dataKey": "Email",
+      "fontSize": 10,
+      "maxWidth": 200
+    }
+  ]
+}
