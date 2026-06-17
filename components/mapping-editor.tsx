@@ -225,7 +225,7 @@ export function MappingEditor({ templateId }: { templateId: string }) {
                   fontSize
                   <input
                     type="number"
-                    value={f.fontSize}
+                    value={f.fontSize ?? 11}
                     onChange={e => updateField(selected, { fontSize: parseFloat(e.target.value) })}
                     className="w-full bg-surface border border-border rounded px-2 py-1 text-[12px]"
                   />
@@ -236,7 +236,7 @@ export function MappingEditor({ templateId }: { templateId: string }) {
                     <input
                       type="number"
                       step="0.1"
-                      value={f.boxWidth ?? 0}
+                      value={f.boxWidth ?? 15.7}
                       onChange={e => updateField(selected, { boxWidth: parseFloat(e.target.value) })}
                       className="w-full bg-surface border border-border rounded px-2 py-1 text-[12px]"
                     />

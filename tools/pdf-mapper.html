@@ -169,7 +169,7 @@
     <label>dataKey</label>
     <input type="text" id="m-datakey" placeholder="np. Name|split_last">
     <label>fontSize</label>
-    <input type="number" id="m-fontsize" value="10" min="6" max="24">
+    <input type="number" id="m-fontsize" value="11" min="6" max="24">
     <div id="m-text-fields">
       <label>maxWidth (pt, opcjonalnie)</label>
       <input type="number" id="m-maxwidth" placeholder="np. 200">
@@ -186,7 +186,7 @@
         </div>
       </div>
       <label>boxWidth (pt) <span id="m-boxwidth-auto" style="color:var(--green);font-size:10px;"></span></label>
-      <input type="number" id="m-boxwidth" step="0.1">
+      <input type="number" id="m-boxwidth" step="0.1" value="15.7">
     </div>
     <div class="modal-actions">
       <button class="btn" onclick="confirmAdd()">Dodaj pole</button>
@@ -356,7 +356,7 @@ function confirmAdd() {
   if (!dataKey) { document.getElementById('m-datakey').focus(); return }
 
   pendingField.dataKey = dataKey
-  pendingField.fontSize = parseFloat(document.getElementById('m-fontsize').value) || 10
+  pendingField.fontSize = parseFloat(document.getElementById('m-fontsize').value) || 11
 
   if (pendingField.type === 'text') {
     const mw = document.getElementById('m-maxwidth').value
@@ -364,7 +364,7 @@ function confirmAdd() {
   } else {
     pendingField.maxCharsPerRow = parseInt(document.getElementById('m-maxchars').value) || 23
     pendingField.rowHeight = parseFloat(document.getElementById('m-rowheight').value) || 25
-    pendingField.boxWidth = parseFloat(document.getElementById('m-boxwidth').value) || 14
+    pendingField.boxWidth = parseFloat(document.getElementById('m-boxwidth').value) || 15.7
   }
 
   fields.push({ ...pendingField })
