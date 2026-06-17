@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { getClients, type Client } from "@/lib/superbase"
 import {
   FileText, Search, ChevronLeft, ArrowRight, Check, Mail,
@@ -313,6 +314,13 @@ function ConfigureView({ template, clients, loadingClients, onBack, onNext }: Co
           <p className="text-[13px] text-text-dim mt-1.5">{template.opis}</p>
         </div>
       </div>
+
+      <Link
+        href={`/documents/${template.id}/edit`}
+        className="inline-flex items-center gap-1.5 px-3 h-8 rounded-btn border border-border bg-transparent text-text text-[12px] font-medium hover:bg-surface-hover transition-colors mb-4"
+      >
+        Edytuj mapping (admin)
+      </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5">
         {/* Left: form */}
