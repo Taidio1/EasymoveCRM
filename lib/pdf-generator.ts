@@ -128,12 +128,12 @@ export const generateClientCard = (client: Client): jsPDF => {
 
   doc.setFontSize(12)
   const documents = [
-    ["Formularz wniosku:", client.FormWni === "Yes" ? "Tak" : "Nie"],
-    ["Załącznik nr jedności:", client.ZalNrJed === "Yes" ? "Tak" : "Nie"],
-    ["Kopia paszportu:", client.KopiaPasz === "Yes" ? "Tak" : "Nie"],
-    ["Załącznik Blue:", client.ZalBlue === "Yes" ? "Tak" : "Nie"],
-    ["Cztery zdjęcia:", client.CzteZdjecia === "Yes" ? "Tak" : "Nie"],
-    ["Pełnomocnictwo:", client.Pelnomocnictwo === "Yes" ? "Tak" : "Nie"],
+    ["Formularz wniosku:", client.FormWni ? "Tak" : "Nie"],
+    ["Załącznik nr jedności:", client.ZalNrJed ? "Tak" : "Nie"],
+    ["Kopia paszportu:", client.KopiaPasz ? "Tak" : "Nie"],
+    ["Załącznik Blue:", client.ZalBlue ? "Tak" : "Nie"],
+    ["Cztery zdjęcia:", client.CzteZdjecia ? "Tak" : "Nie"],
+    ["Pełnomocnictwo:", client.Pelnomocnictwo ? "Tak" : "Nie"],
   ]
 
   autoTable(doc, {
@@ -254,11 +254,11 @@ export const generateTemporaryResidenceApplication = (client: Client): jsPDF => 
   doc.setFontSize(11)
   let yPos = 250
   const attachments = [
-    client.FormWni === "Yes" ? "1. Wypełniony formularz wniosku" : null,
-    client.KopiaPasz === "Yes" ? "2. Kopia paszportu" : null,
-    client.CzteZdjecia === "Yes" ? "3. Cztery aktualne fotografie" : null,
-    client.ZalNrJed === "Yes" ? "4. Potwierdzenie zameldowania" : null,
-    client.Pelnomocnictwo === "Yes" ? "5. Pełnomocnictwo" : null,
+    client.FormWni ? "1. Wypełniony formularz wniosku" : null,
+    client.KopiaPasz ? "2. Kopia paszportu" : null,
+    client.CzteZdjecia ? "3. Cztery aktualne fotografie" : null,
+    client.ZalNrJed ? "4. Potwierdzenie zameldowania" : null,
+    client.Pelnomocnictwo ? "5. Pełnomocnictwo" : null,
   ].filter(Boolean)
 
   attachments.forEach((attachment, index) => {
