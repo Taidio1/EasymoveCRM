@@ -10,7 +10,7 @@
     "inspect:pdf": "ts-node -P tsconfig.scripts.json scripts/inspect-pdf.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "postinstall": "node -e \"require('fs').copyFileSync('node_modules/pdfjs-dist/build/pdf.worker.min.mjs','public/pdf.worker.min.mjs')\""
+    "postinstall": "node -e \"const fs=require('fs');const src='node_modules/pdfjs-dist/build/pdf.worker.min.mjs';if(fs.existsSync(src)){fs.mkdirSync('public',{recursive:true});fs.copyFileSync(src,'public/pdf.worker.min.mjs')}\""
   },
   "dependencies": {
     "@google-analytics/data": "^6.1.0",
