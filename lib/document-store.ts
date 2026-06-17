@@ -1,6 +1,6 @@
 import fs from "fs/promises"
 import path from "path"
-import { supabaseAdmin } from "@/lib/supabase-admin"
+import { getSupabaseAdmin } from "@/lib/supabase-admin"
 import type { DocumentMapping, FieldMapping } from "@/lib/document-types"
 
 export function validateMapping(m: DocumentMapping): string[] {
@@ -32,7 +32,7 @@ async function readFromFile(id: string): Promise<DocumentMapping> {
 
 export async function getMapping(id: string): Promise<DocumentMapping> {
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdmin()
       .from("document_mappings")
       .select("id, name, pdf_path, fields")
       .eq("id", id)
@@ -46,7 +46,7 @@ export async function getMapping(id: string): Promise<DocumentMapping> {
 }
 
 export async function saveMapping(id: string, mapping: DocumentMapping): Promise<string> {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdmin()
     .from("document_mappings")
     .upsert({
       id,

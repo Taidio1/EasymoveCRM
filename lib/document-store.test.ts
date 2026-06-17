@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest"
 
-vi.mock("@/lib/supabase-admin", () => ({ supabaseAdmin: {} }))
+vi.mock("@/lib/supabase-admin", () => ({ getSupabaseAdmin: () => ({}) }))
 
 import { validateMapping } from "@/lib/document-store"
 

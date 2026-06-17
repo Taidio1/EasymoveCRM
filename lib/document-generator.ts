@@ -6,6 +6,7 @@ import type { Client } from "@/lib/superbase"
 import type { DocumentMapping, FieldMapping } from "@/lib/document-types"
 import { resolveField } from "@/lib/document-resolver"
 import { layoutGrid } from "@/lib/pdf-coords"
+import { getMapping } from "@/lib/document-store"
 
 function truncateToWidth(text: string, maxWidth: number, font: PDFFont, fontSize: number): string {
   if (font.widthOfTextAtSize(text, fontSize) <= maxWidth) return text
@@ -23,9 +24,7 @@ function drawGridField(page: PDFPage, text: string, field: FieldMapping, font: P
 }
 
 export async function generateDocument(templateId: string, client: Client): Promise<Uint8Array> {
-  const mappingPath = path.join(process.cwd(), "mappings", `${templateId}.json`)
-  const mappingRaw = await fs.readFile(mappingPath, "utf-8")
-  const mapping: DocumentMapping = JSON.parse(mappingRaw)
+  const mapping: DocumentMapping = await getMapping(templateId)
 
   const pdfRelative = mapping.pdfPath.startsWith("/") ? mapping.pdfPath.slice(1) : mapping.pdfPath
   const pdfPath = path.join(process.cwd(), "public", pdfRelative)
