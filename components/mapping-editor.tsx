@@ -1,11 +1,11 @@
 "use client"
 
-import { type CSSProperties, type MouseEvent as ReactMouseEvent, useEffect, useState } from "react"
-import dynamic from "next/dynamic"
+import { type MouseEvent as ReactMouseEvent, useEffect, useState } from "react"
 import { resolveField } from "@/lib/document-resolver"
-import { pointToPixel, pixelToPoint, layoutGrid, type PageDims } from "@/lib/pdf-coords"
+import { pointToPixel, pixelToPoint, type PageDims } from "@/lib/pdf-coords"
 import { getClients, supabase, type Client } from "@/lib/superbase"
 import type { DocumentMapping, FieldMapping } from "@/lib/document-types"
+import { PdfFieldLayer } from "@/components/pdf-field-layer"
 
 const DEFAULT_FONT_SIZE = 11
 const DEFAULT_BOX_WIDTH = 15.7
@@ -13,41 +13,6 @@ const DEFAULT_MAX_CHARS = 23
 const DEFAULT_ROW_HEIGHT = 25
 
 type Mode = "select" | "text" | "grid"
-
-// pdfjs-dist dotyka globali przeglądarki — ładuj wyłącznie po stronie klienta.
-const PdfCanvas = dynamic(() => import("@/components/pdf-canvas").then(m => m.PdfCanvas), {
-  ssr: false,
-})
-
-function previewStyle(
-  x: number,
-  y: number,
-  fontSizePt: number,
-  d: PageDims,
-  maxWidthPt?: number,
-): CSSProperties {
-  const scale = d.imageHeightPx / d.pageHeightPt
-  const base: CSSProperties = {
-    position: "absolute",
-    left: x,
-    top: y,
-    // pdf-lib kotwiczy tekst po linii bazowej; dociągamy baseline do punktu
-    // (zamiast dołu ramki), żeby podgląd pokrywał się z realnym PDF.
-    lineHeight: 1,
-    transform: "translateY(-0.8em)",
-    fontSize: fontSizePt * scale,
-    fontFamily: "NotoSansPreview, var(--font-sans), sans-serif",
-    color: "#111",
-    whiteSpace: "nowrap",
-    pointerEvents: "none",
-    zIndex: 2,
-  }
-  if (maxWidthPt != null) {
-    // odpowiednik truncateToWidth z generatora (przycięcie z „…")
-    return { ...base, display: "inline-block", maxWidth: maxWidthPt * scale, overflow: "hidden", textOverflow: "ellipsis" }
-  }
-  return base
-}
 
 export function MappingEditor({ templateId }: { templateId: string }) {
   const [mapping, setMapping] = useState<DocumentMapping | null>(null)
@@ -191,8 +156,18 @@ export function MappingEditor({ templateId }: { templateId: string }) {
       {/* ta sama czcionka co w generowanym PDF (osadzona NotoSans) */}
       <style>{`@font-face{font-family:'NotoSansPreview';src:url('/fonts/NotoSans-Regular.ttf') format('truetype');font-display:swap;}`}</style>
       <div className="flex-1 overflow-auto p-4" style={{ position: "relative" }}>
-        <div style={{ position: "relative", display: "inline-block" }}>
-          <PdfCanvas pdfUrl={mapping.pdfPath} page={page} onReady={setDims} />
+        <PdfFieldLayer
+          pdfUrl={mapping.pdfPath}
+          page={page}
+          fields={pageFields}
+          valueOf={idx => (sample ? resolveField(sample, mapping.fields[idx].dataKey) : "")}
+          dims={dims}
+          onReady={setDims}
+          selected={selected}
+          onSelect={setSelected}
+          editable
+          onMove={(idx, x, y) => updateField(idx, { x, y })}
+        >
 
           {/* warstwa do stawiania nowych pól (aktywna tylko w trybie text/grid) */}
           <div
@@ -228,48 +203,7 @@ export function MappingEditor({ templateId }: { templateId: string }) {
             )
           })()}
 
-          {dims &&
-            pageFields.map(({ f, idx }) => {
-              const px = pointToPixel(f.x, f.y, dims)
-              const value = sample ? resolveField(sample, f.dataKey) : f.dataKey
-              return (
-                <div key={idx}>
-                  <div
-                    onMouseDown={e => startDrag(e, idx)}
-                    onClick={() => setSelected(idx)}
-                    title={f.dataKey}
-                    style={{
-                      position: "absolute",
-                      left: px.x,
-                      top: px.y,
-                      width: 12,
-                      height: 12,
-                      marginLeft: -6,
-                      marginTop: -6,
-                      borderRadius: "50%",
-                      cursor: "grab",
-                      background: f.type === "grid" ? "var(--success)" : "var(--brand)",
-                      boxShadow: idx === selected ? "0 0 0 3px white" : "none",
-                      zIndex: 3,
-                    }}
-                  />
-                  {sample &&
-                    (f.type === "grid"
-                      ? layoutGrid(value, f).map((g, gi) => {
-                          const gp = pointToPixel(g.x, g.y, dims)
-                          return (
-                            <span key={gi} style={previewStyle(gp.x, gp.y, f.fontSize, dims)}>
-                              {g.char}
-                            </span>
-                          )
-                        })
-                      : (
-                          <span style={previewStyle(px.x, px.y, f.fontSize, dims, f.maxWidth)}>{value}</span>
-                        ))}
-                </div>
-              )
-            })}
-        </div>
+        </PdfFieldLayer>
       </div>
 
       <aside className="w-80 border-l border-border overflow-auto p-4">
@@ -428,22 +362,4 @@ export function MappingEditor({ templateId }: { templateId: string }) {
       </aside>
     </div>
   )
-
-  function startDrag(e: ReactMouseEvent, idx: number) {
-    e.preventDefault()
-    setSelected(idx)
-    const wrapper = (e.currentTarget as HTMLElement).parentElement!.parentElement!
-    const move = (ev: MouseEvent) => {
-      if (!dims) return
-      const rect = wrapper.getBoundingClientRect()
-      const pt = pixelToPoint(ev.clientX - rect.left, ev.clientY - rect.top, dims)
-      updateField(idx, { x: pt.x, y: pt.y })
-    }
-    const up = () => {
-      window.removeEventListener("mousemove", move)
-      window.removeEventListener("mouseup", up)
-    }
-    window.addEventListener("mousemove", move)
-    window.addEventListener("mouseup", up)
-  }
 }
