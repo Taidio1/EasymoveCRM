@@ -5,6 +5,7 @@ import fontkit from "@pdf-lib/fontkit"
 import type { Client } from "@/lib/superbase"
 import type { DocumentMapping, FieldMapping } from "@/lib/document-types"
 import { resolveField } from "@/lib/document-resolver"
+import { layoutGrid } from "@/lib/pdf-coords"
 
 function truncateToWidth(text: string, maxWidth: number, font: PDFFont, fontSize: number): string {
   if (font.widthOfTextAtSize(text, fontSize) <= maxWidth) return text
@@ -16,35 +17,8 @@ function truncateToWidth(text: string, maxWidth: number, font: PDFFont, fontSize
 }
 
 function drawGridField(page: PDFPage, text: string, field: FieldMapping, font: PDFFont): void {
-  const boxWidth = field.boxWidth ?? 14.2
-  const maxCharsPerRow = field.maxCharsPerRow ?? 35
-  const rowHeight = field.rowHeight ?? 25
-  const words = text.toUpperCase().split(" ")
-
-  let currentRow = 0
-  let currentCol = 0
-
-  for (const word of words) {
-    if (currentCol + word.length > maxCharsPerRow && currentCol > 0) {
-      currentRow++
-      currentCol = 0
-    }
-
-    for (const char of word) {
-      if (currentCol >= maxCharsPerRow) {
-        currentRow++
-        currentCol = 0
-      }
-      page.drawText(char, {
-        x: field.x + currentCol * boxWidth,
-        y: field.y - currentRow * rowHeight,
-        size: field.fontSize,
-        font,
-      })
-      currentCol++
-    }
-
-    if (currentCol < maxCharsPerRow) currentCol++
+  for (const g of layoutGrid(text, field)) {
+    page.drawText(g.char, { x: g.x, y: g.y, size: field.fontSize, font })
   }
 }
 
