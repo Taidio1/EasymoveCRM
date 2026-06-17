@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react"
 import * as pdfjsLib from "pdfjs-dist"
 import type { PageDims } from "@/lib/pdf-coords"
+import { clampPdfPage } from "@/lib/pdf-page-navigation"
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs"
 
@@ -11,9 +12,10 @@ interface Props {
   page: number // 1-based
   renderScale?: number
   onReady?: (dims: PageDims) => void
+  onPageCount?: (pageCount: number) => void
 }
 
-export function PdfCanvas({ pdfUrl, page, renderScale = 2, onReady }: Props) {
+export function PdfCanvas({ pdfUrl, page, renderScale = 2, onReady, onPageCount }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -24,7 +26,8 @@ export function PdfCanvas({ pdfUrl, page, renderScale = 2, onReady }: Props) {
     ;(async () => {
       const doc = await pdfjsLib.getDocument(pdfUrl).promise
       if (cancelled) return
-      const pdfPage = await doc.getPage(page)
+      onPageCount?.(doc.numPages)
+      const pdfPage = await doc.getPage(clampPdfPage(page, doc.numPages))
       const viewport = pdfPage.getViewport({ scale: renderScale })
       const ctx = canvas.getContext("2d")!
       canvas.width = viewport.width
@@ -43,8 +46,7 @@ export function PdfCanvas({ pdfUrl, page, renderScale = 2, onReady }: Props) {
     return () => {
       cancelled = true
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pdfUrl, page, renderScale])
+  }, [pdfUrl, page, renderScale, onReady, onPageCount])
 
   return <canvas ref={canvasRef} className="block max-w-none" />
 }

@@ -8,6 +8,7 @@ import { layoutGrid } from "@/lib/pdf-coords"
 import { getMapping } from "@/lib/document-store"
 import { fieldValue, fieldGeometry } from "@/lib/document-overrides"
 import type { FieldOverride } from "@/lib/document-types"
+import { downloadDocumentTemplatePdf, resolveDocumentTemplateSource } from "@/lib/document-template-storage"
 
 function truncateToWidth(text: string, maxWidth: number, font: PDFFont, fontSize: number): string {
   if (font.widthOfTextAtSize(text, fontSize) <= maxWidth) return text
@@ -24,6 +25,16 @@ function drawGridField(page: PDFPage, text: string, field: FieldMapping, font: P
   }
 }
 
+export async function loadDocumentTemplatePdfBytes(pdfPath: string): Promise<Uint8Array> {
+  const source = resolveDocumentTemplateSource(pdfPath)
+  if (source.kind === "storage") {
+    return downloadDocumentTemplatePdf(source.templateId)
+  }
+
+  const pdfPathOnDisk = path.join(process.cwd(), "public", source.publicPath)
+  return fs.readFile(pdfPathOnDisk)
+}
+
 export async function generateDocument(
   templateId: string,
   client: Client | null,
@@ -31,9 +42,7 @@ export async function generateDocument(
 ): Promise<Uint8Array> {
   const mapping: DocumentMapping = await getMapping(templateId)
 
-  const pdfRelative = mapping.pdfPath.startsWith("/") ? mapping.pdfPath.slice(1) : mapping.pdfPath
-  const pdfPath = path.join(process.cwd(), "public", pdfRelative)
-  const pdfBytes = await fs.readFile(pdfPath)
+  const pdfBytes = await loadDocumentTemplatePdfBytes(mapping.pdfPath)
 
   const fontPath = path.join(process.cwd(), "public", "fonts", "NotoSans-Regular.ttf")
   const fontBytes = await fs.readFile(fontPath)

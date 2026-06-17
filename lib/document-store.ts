@@ -1,7 +1,20 @@
 import fs from "fs/promises"
 import path from "path"
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
-import type { DocumentMapping, FieldMapping } from "@/lib/document-types"
+import { normalizeMappingFieldsToGrid } from "@/lib/mapping-field-controls"
+import type { DocumentMapping, DocumentTemplateInput, FieldMapping } from "@/lib/document-types"
+
+function cleanRequired(value: unknown): string {
+  return typeof value === "string" ? value.trim() : ""
+}
+
+export async function deleteMapping(id: string): Promise<void> {
+  const { error } = await getSupabaseAdmin()
+    .from("document_mappings")
+    .delete()
+    .eq("id", id)
+  if (error) throw new Error(`Usuniecie mappingu nie powiodlo sie: ${error.message}`)
+}
 
 export function validateMapping(m: DocumentMapping): string[] {
   const errors: string[] = []
@@ -24,10 +37,35 @@ export function validateMapping(m: DocumentMapping): string[] {
   return errors
 }
 
+export function normalizeDocumentMapping(mapping: DocumentMapping): DocumentMapping {
+  return {
+    ...mapping,
+    fields: normalizeMappingFieldsToGrid(mapping.fields),
+  }
+}
+
+export function normalizeDocumentTemplateInput(input: unknown): DocumentTemplateInput {
+  const value = input && typeof input === "object" ? input as Record<string, unknown> : {}
+  return {
+    id: cleanRequired(value.id),
+    name: cleanRequired(value.name),
+    pdfPath: cleanRequired(value.pdfPath),
+  }
+}
+
+export function validateDocumentTemplateInput(input: unknown): string[] {
+  const normalized = normalizeDocumentTemplateInput(input)
+  const errors: string[] = []
+  if (!normalized.id) errors.push("Brak id")
+  if (!normalized.name) errors.push("Brak name")
+  if (!normalized.pdfPath) errors.push("Brak pdfPath")
+  return errors
+}
+
 async function readFromFile(id: string): Promise<DocumentMapping> {
   const p = path.join(process.cwd(), "mappings", `${id}.json`)
   const raw = await fs.readFile(p, "utf-8")
-  return JSON.parse(raw) as DocumentMapping
+  return normalizeDocumentMapping(JSON.parse(raw) as DocumentMapping)
 }
 
 export async function getMapping(id: string): Promise<DocumentMapping> {
@@ -38,21 +76,45 @@ export async function getMapping(id: string): Promise<DocumentMapping> {
       .eq("id", id)
       .single()
     if (error || !data) throw error ?? new Error("brak wiersza")
-    return { id: data.id, name: data.name, pdfPath: data.pdf_path, fields: data.fields }
+    return normalizeDocumentMapping({ id: data.id, name: data.name, pdfPath: data.pdf_path, fields: data.fields })
   } catch {
     // Fallback: plik JSON z repo (seed / DB niedostępne)
     return readFromFile(id)
   }
 }
 
+export async function listMappings(): Promise<DocumentMapping[]> {
+  const { data, error } = await getSupabaseAdmin()
+    .from("document_mappings")
+    .select("id, name, pdf_path, fields")
+    .order("name", { ascending: true })
+  if (error) throw new Error(`Odczyt mappingów nie powiódł się: ${error.message}`)
+  return (data ?? []).map(row => ({
+    id: row.id,
+    name: row.name,
+    pdfPath: row.pdf_path,
+    fields: normalizeMappingFieldsToGrid(row.fields),
+  })) as DocumentMapping[]
+}
+
+export async function createEmptyMapping(input: unknown): Promise<DocumentMapping> {
+  const errors = validateDocumentTemplateInput(input)
+  if (errors.length) throw new Error(errors.join("; "))
+  const normalized = normalizeDocumentTemplateInput(input)
+  const mapping: DocumentMapping = { ...normalized, fields: [] }
+  await saveMapping(normalized.id, mapping)
+  return mapping
+}
+
 export async function saveMapping(id: string, mapping: DocumentMapping): Promise<string> {
+  const normalized = normalizeDocumentMapping(mapping)
   const { data, error } = await getSupabaseAdmin()
     .from("document_mappings")
     .upsert({
       id,
-      name: mapping.name,
-      pdf_path: mapping.pdfPath,
-      fields: mapping.fields,
+      name: normalized.name,
+      pdf_path: normalized.pdfPath,
+      fields: normalized.fields,
       updated_at: new Date().toISOString(),
     })
     .select("updated_at")

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
-import { getMapping, saveMapping, validateMapping } from "@/lib/document-store"
-import { getSupabaseAdmin } from "@/lib/supabase-admin"
+import { deleteMapping, getMapping, saveMapping, validateMapping } from "@/lib/document-store"
+import { requireDocumentsAdmin } from "@/lib/documents-admin-auth"
+import { parseDocumentTemplateProxyPath, removeDocumentTemplatePdf } from "@/lib/document-template-storage"
 import type { DocumentMapping } from "@/lib/document-types"
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -15,35 +15,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   }
 }
 
-async function requireAdmin(
-  req: NextRequest,
-): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
-  const auth = req.headers.get("authorization") ?? ""
-  const token = auth.startsWith("Bearer ") ? auth.slice(7) : ""
-  if (!token) return { ok: false, status: 401, error: "Brak tokenu" }
-
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  const userClient = createClient(url, anon, {
-    global: { headers: { Authorization: `Bearer ${token}` } },
-  })
-  const { data: { user }, error } = await userClient.auth.getUser()
-  if (error || !user) return { ok: false, status: 401, error: "Nieprawidłowa sesja" }
-
-  const { data: profile, error: profErr } = await getSupabaseAdmin()
-    .from("profiles").select("role").eq("id", user.id).single()
-  if (profErr) return { ok: false, status: 403, error: `Nie znaleziono profilu: ${profErr.message}` }
-  const role = (profile?.role ?? "").toString().trim().toLowerCase()
-  if (role !== "admin") {
-    return { ok: false, status: 403, error: `Wymagana rola Admin (masz: ${profile?.role ?? "brak"})` }
-  }
-  return { ok: true }
-}
-
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
-  const gate = await requireAdmin(req)
+  const gate = await requireDocumentsAdmin(req)
   if (!gate.ok) return NextResponse.json({ error: gate.error }, { status: gate.status })
 
   let body: DocumentMapping
@@ -59,6 +34,31 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     const updatedAt = await saveMapping(id, body)
     return NextResponse.json({ ok: true, updated_at: updatedAt })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error"
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
+}
+
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+
+  const gate = await requireDocumentsAdmin(req)
+  if (!gate.ok) return NextResponse.json({ error: gate.error }, { status: gate.status })
+
+  let cleanupWarning = ""
+  try {
+    const mapping = await getMapping(id)
+    const templateId = parseDocumentTemplateProxyPath(mapping.pdfPath)
+    if (templateId) await removeDocumentTemplatePdf(templateId)
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error"
+    cleanupWarning = `Nie udało się usunąć pliku PDF: ${message}`
+  }
+
+  try {
+    await deleteMapping(id)
+    return NextResponse.json(cleanupWarning ? { ok: true, warning: cleanupWarning } : { ok: true })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error"
     return NextResponse.json({ error: message }, { status: 500 })

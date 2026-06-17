@@ -23,6 +23,31 @@ export interface DocumentTemplate {
   name: string
 }
 
+export interface DocumentTemplateInput {
+  id: string
+  name: string
+  pdfPath: string
+}
+
+export interface DocumentFieldDefinition {
+  id: string
+  label: string
+  dataKey: string
+  category?: string
+  description?: string
+  transform?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface DocumentFieldDefinitionInput {
+  label: string
+  dataKey: string
+  category?: string
+  description?: string
+  transform?: string
+}
+
 export interface FieldOverride {
   value: string
   x?: number

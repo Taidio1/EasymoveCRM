@@ -12,8 +12,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { MoreHorizontal, Loader2, ArrowUpDown, ChevronUp, ChevronDown, FileText, Globe, Home, Briefcase, Map, Shield } from "lucide-react"
+import { MoreHorizontal, Loader2, ArrowUpDown, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, FileText, Globe, Home, Briefcase, Map, Shield } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { AddClientWizard } from "./add-client-wizard"
 import { toast } from "@/hooks/use-toast"
 import { type Client, getClients, deleteClient } from "@/lib/superbase"
@@ -94,6 +101,8 @@ export default function ClientTable() {
   const [clients, setClients] = useState<Client[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'DataZloWnio', direction: 'desc' })
+  const [pageSize, setPageSize] = useState(25)
+  const [currentPage, setCurrentPage] = useState(1)
 
   const fetchClients = async () => {
     setIsLoading(true)
@@ -206,6 +215,22 @@ export default function ClientTable() {
     });
   }, [filteredClients, sortConfig]);
 
+  // Reset do pierwszej strony przy zmianie filtrów, wyszukiwania lub rozmiaru strony
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, activeStatusFilter, pageSize])
+
+  const totalPages = Math.max(1, Math.ceil(sortedClients.length / pageSize))
+  const safePage = Math.min(currentPage, totalPages)
+
+  const paginatedClients = useMemo(() => {
+    const start = (safePage - 1) * pageSize
+    return sortedClients.slice(start, start + pageSize)
+  }, [sortedClients, safePage, pageSize])
+
+  const firstRow = sortedClients.length === 0 ? 0 : (safePage - 1) * pageSize + 1
+  const lastRow = Math.min(safePage * pageSize, sortedClients.length)
+
   const exportToCSV = () => {
     const headers = ["Klient", "ID", "Sprawa", "Status", "Data złożenia", "Doradca"]
     const rows = sortedClients.map((c) => [
@@ -289,14 +314,14 @@ export default function ClientTable() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedClients.length === 0 ? (
+                {paginatedClients.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center py-12 text-sm text-text-dim">
                       Nie znaleziono klientów spełniających kryteria.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  sortedClients.map((client) => {
+                  paginatedClients.map((client) => {
                     const caseType = getCaseType(client.CelPobytu);
                     const urgency = getUrgency(client.DataZloWnio);
                     const docStatus = getDocumentsStatus(client);
@@ -429,18 +454,69 @@ export default function ClientTable() {
           </div>
         )}
         
-        <div className="flex items-center justify-between px-6 py-4 bg-surface border-t border-border">
-          <div className="text-xs text-text-mute">
-            Łącznie: <span className="font-semibold text-text">{sortedClients.length}</span> klientów
+        <div className="flex flex-col gap-3 px-6 py-4 bg-surface border-t border-border sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="text-xs text-text-mute">
+              {sortedClients.length > 0 ? (
+                <>
+                  <span className="font-semibold text-text">{firstRow}–{lastRow}</span> z{" "}
+                  <span className="font-semibold text-text">{sortedClients.length}</span> klientów
+                </>
+              ) : (
+                <>Łącznie: <span className="font-semibold text-text">0</span> klientów</>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xxs font-bold uppercase tracking-loosest text-text-mute">Na stronę</span>
+              <Select value={String(pageSize)} onValueChange={(value) => setPageSize(Number(value))}>
+                <SelectTrigger className="h-8 w-[72px] bg-surface border-border text-xs text-text">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-surface-raised border-border text-text">
+                  <SelectItem value="25" className="text-xs">25</SelectItem>
+                  <SelectItem value="50" className="text-xs">50</SelectItem>
+                  <SelectItem value="100" className="text-xs">100</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="h-8 text-xxs font-bold uppercase tracking-loosest border-border text-text-dim hover:text-text hover:bg-surface-hover"
-            onClick={exportToCSV}
-          >
-            Eksport CSV
-          </Button>
+
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 border-border text-text-dim hover:text-text hover:bg-surface-hover disabled:opacity-40"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={safePage <= 1}
+                aria-label="Poprzednia strona"
+              >
+                <ChevronLeft size={16} />
+              </Button>
+              <span className="text-xs text-text-mute whitespace-nowrap">
+                Strona <span className="font-semibold text-text">{safePage}</span> z{" "}
+                <span className="font-semibold text-text">{totalPages}</span>
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 border-border text-text-dim hover:text-text hover:bg-surface-hover disabled:opacity-40"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safePage >= totalPages}
+                aria-label="Następna strona"
+              >
+                <ChevronRight size={16} />
+              </Button>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xxs font-bold uppercase tracking-loosest border-border text-text-dim hover:text-text hover:bg-surface-hover"
+              onClick={exportToCSV}
+            >
+              Eksport CSV
+            </Button>
+          </div>
         </div>
       </div>
     </div>

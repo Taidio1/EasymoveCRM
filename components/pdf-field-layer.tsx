@@ -43,6 +43,7 @@ export interface PdfFieldLayerProps {
   valueOf: (idx: number) => string
   dims: PageDims | null
   onReady: (d: PageDims) => void
+  onPageCount?: (pageCount: number) => void
   selected: number
   onSelect: (idx: number) => void
   editable: boolean
@@ -75,7 +76,7 @@ export function PdfFieldLayer(props: PdfFieldLayerProps) {
 
   return (
     <div ref={wrapperRef} style={{ position: "relative", display: "inline-block" }}>
-      <PdfCanvas pdfUrl={props.pdfUrl} page={props.page} onReady={props.onReady} />
+      <PdfCanvas pdfUrl={props.pdfUrl} page={props.page} onReady={props.onReady} onPageCount={props.onPageCount} />
       {props.children}
       {props.dims &&
         props.fields.map(({ f, idx }) => {

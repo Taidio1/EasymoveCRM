@@ -1,9 +1,10 @@
 "use client"
 
-import { useState } from "react"
-import { ChevronLeft, Download } from "lucide-react"
+import { useCallback, useState } from "react"
+import { ChevronLeft, ChevronRight, Download } from "lucide-react"
 import { PdfFieldLayer } from "@/components/pdf-field-layer"
 import { seedValues, buildOverrides } from "@/lib/document-overrides"
+import { clampPdfPage, nextPdfPage, previousPdfPage } from "@/lib/pdf-page-navigation"
 import type { PageDims } from "@/lib/pdf-coords"
 import type { Client } from "@/lib/superbase"
 import type { DocumentMapping } from "@/lib/document-types"
@@ -22,6 +23,7 @@ export function DocumentComposer({ templateId, mapping, client, onBack, onNew }:
   const [values, setValues] = useState<string[]>(() => seedValues(client, mapping.fields))
   const [pos, setPos] = useState<Pos>({})
   const [page, setPage] = useState(1)
+  const [pageCount, setPageCount] = useState(1)
   const [dims, setDims] = useState<PageDims | null>(null)
   const [selected, setSelected] = useState(-1)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
@@ -43,6 +45,11 @@ export function DocumentComposer({ templateId, mapping, client, onBack, onNew }:
   function setPosField(idx: number, patch: { x?: number; y?: number; fontSize?: number }) {
     setPos(p => ({ ...p, [idx]: { ...p[idx], ...patch } }))
   }
+
+  const handlePageCount = useCallback((count: number) => {
+    setPageCount(count)
+    setPage(current => clampPdfPage(current, count))
+  }, [])
 
   async function generate(): Promise<string | null> {
     setIsGenerating(true)
@@ -97,6 +104,7 @@ export function DocumentComposer({ templateId, mapping, client, onBack, onNew }:
           valueOf={idx => values[idx] ?? ""}
           dims={dims}
           onReady={setDims}
+          onPageCount={handlePageCount}
           selected={selected}
           onSelect={setSelected}
           editable
@@ -107,13 +115,33 @@ export function DocumentComposer({ templateId, mapping, client, onBack, onNew }:
       <aside className="w-80 border-l border-border overflow-auto p-4">
         <div className="mb-3 flex items-center gap-2">
           <label className="text-[11px] text-text-mute">Strona</label>
+          <button
+            type="button"
+            onClick={() => setPage(current => previousPdfPage(current, pageCount))}
+            disabled={page <= 1}
+            className="inline-flex h-7 w-7 items-center justify-center rounded border border-border text-text-dim hover:bg-surface-hover disabled:opacity-40"
+            title="Poprzednia strona"
+          >
+            <ChevronLeft size={13} />
+          </button>
           <input
             type="number"
             min={1}
+            max={pageCount}
             value={page}
-            onChange={e => setPage(parseInt(e.target.value) || 1)}
+            onChange={e => setPage(clampPdfPage(parseInt(e.target.value) || 1, pageCount))}
             className="w-16 bg-surface border border-border rounded px-2 py-1 text-[12px]"
           />
+          <span className="text-[11px] text-text-mute">/ {pageCount}</span>
+          <button
+            type="button"
+            onClick={() => setPage(current => nextPdfPage(current, pageCount))}
+            disabled={page >= pageCount}
+            className="inline-flex h-7 w-7 items-center justify-center rounded border border-border text-text-dim hover:bg-surface-hover disabled:opacity-40"
+            title="Następna strona"
+          >
+            <ChevronRight size={13} />
+          </button>
           <span className="text-[11px] text-text-mute">
             {client ? client.Name : "Dane ręczne"}
           </span>

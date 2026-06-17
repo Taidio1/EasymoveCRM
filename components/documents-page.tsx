@@ -1,8 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { getClients, type Client } from "@/lib/superbase"
-import { FileText, Search, ChevronLeft, ArrowRight, ChevronRight } from "lucide-react"
+import { FileText, Search, ChevronLeft, ArrowRight, ChevronRight, Settings2 } from "lucide-react"
 import { DocumentComposer } from "@/components/document-composer"
 import type { DocumentMapping } from "@/lib/document-types"
 
@@ -105,6 +106,12 @@ function BrowseView({ onSelect }: BrowseProps) {
         <h2 className="font-display text-[18px] font-medium text-text tracking-semi-tight">Wybierz szablon</h2>
         <span className="text-[11px] text-text-mute font-mono tracking-semi-loose uppercase">{filtered.length} dostępnych</span>
         <div className="flex-1 min-w-0" />
+        <Link
+          href="/documents/admin"
+          className="inline-flex h-8 items-center gap-1.5 rounded-btn border border-border bg-surface px-3 text-[12px] font-medium text-text-dim transition-colors hover:bg-surface-hover hover:text-text"
+        >
+          <Settings2 size={13} /> Panel admina
+        </Link>
         <div className="flex items-center gap-1.5 bg-surface border border-border rounded-btn px-2.5 w-full sm:w-60">
           <Search size={13} className="text-text-mute shrink-0" />
           <input
