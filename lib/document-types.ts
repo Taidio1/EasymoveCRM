@@ -22,3 +22,10 @@ export interface DocumentTemplate {
   id: string
   name: string
 }
+
+export interface FieldOverride {
+  value: string
+  x?: number
+  y?: number
+  fontSize?: number
+}
