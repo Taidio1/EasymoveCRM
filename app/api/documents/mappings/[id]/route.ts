@@ -30,9 +30,13 @@ async function requireAdmin(
   const { data: { user }, error } = await userClient.auth.getUser()
   if (error || !user) return { ok: false, status: 401, error: "Nieprawidłowa sesja" }
 
-  const { data: profile } = await getSupabaseAdmin()
+  const { data: profile, error: profErr } = await getSupabaseAdmin()
     .from("profiles").select("role").eq("id", user.id).single()
-  if (profile?.role !== "Admin") return { ok: false, status: 403, error: "Wymagana rola Admin" }
+  if (profErr) return { ok: false, status: 403, error: `Nie znaleziono profilu: ${profErr.message}` }
+  const role = (profile?.role ?? "").toString().trim().toLowerCase()
+  if (role !== "admin") {
+    return { ok: false, status: 403, error: `Wymagana rola Admin (masz: ${profile?.role ?? "brak"})` }
+  }
   return { ok: true }
 }
 
