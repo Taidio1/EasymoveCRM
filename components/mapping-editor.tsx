@@ -7,6 +7,13 @@ import { pointToPixel, pixelToPoint, layoutGrid, type PageDims } from "@/lib/pdf
 import { getClients, supabase, type Client } from "@/lib/superbase"
 import type { DocumentMapping, FieldMapping } from "@/lib/document-types"
 
+const DEFAULT_FONT_SIZE = 11
+const DEFAULT_BOX_WIDTH = 15.7
+const DEFAULT_MAX_CHARS = 23
+const DEFAULT_ROW_HEIGHT = 25
+
+type Mode = "select" | "text" | "grid"
+
 // pdfjs-dist dotyka globali przeglądarki — ładuj wyłącznie po stronie klienta.
 const PdfCanvas = dynamic(() => import("@/components/pdf-canvas").then(m => m.PdfCanvas), {
   ssr: false,
@@ -37,6 +44,8 @@ export function MappingEditor({ templateId }: { templateId: string }) {
   const [sample, setSample] = useState<Client | null>(null)
   const [status, setStatus] = useState("")
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const [mode, setMode] = useState<Mode>("select")
+  const [gridFirstClick, setGridFirstClick] = useState<{ x: number; y: number } | null>(null)
 
   useEffect(() => {
     fetch(`/api/documents/mappings/${templateId}`)
@@ -50,22 +59,58 @@ export function MappingEditor({ templateId }: { templateId: string }) {
     setMapping(m => (m ? { ...m, fields: m.fields.map((f, i) => (i === idx ? { ...f, ...patch } : f)) } : m))
   }
 
-  function startDrag(e: ReactMouseEvent, idx: number) {
-    e.preventDefault()
-    setSelected(idx)
-    const wrapper = (e.currentTarget as HTMLElement).parentElement!.parentElement!
-    const move = (ev: MouseEvent) => {
-      if (!dims) return
-      const rect = wrapper.getBoundingClientRect()
-      const pt = pixelToPoint(ev.clientX - rect.left, ev.clientY - rect.top, dims)
-      updateField(idx, { x: pt.x, y: pt.y })
+  function addField(field: FieldMapping) {
+    setMapping(m => (m ? { ...m, fields: [...m.fields, field] } : m))
+    setSelected(mapping ? mapping.fields.length : 0)
+    setMode("select")
+  }
+
+  function deleteField(idx: number) {
+    setMapping(m => (m ? { ...m, fields: m.fields.filter((_, i) => i !== idx) } : m))
+    setSelected(-1)
+  }
+
+  function switchMode(next: Mode) {
+    setMode(next)
+    setGridFirstClick(null)
+    setStatus(
+      next === "text"
+        ? "Tryb Text: kliknij pozycję nowego pola"
+        : next === "grid"
+          ? "Tryb Grid: kliknij PIERWSZĄ kratkę"
+          : "",
+    )
+  }
+
+  function placePoint(e: ReactMouseEvent) {
+    if (!dims || mode === "select") return
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    const pt = pixelToPoint(e.clientX - rect.left, e.clientY - rect.top, dims)
+
+    if (mode === "text") {
+      addField({ page, x: pt.x, y: pt.y, dataKey: "", fontSize: DEFAULT_FONT_SIZE, type: "text" })
+      return
     }
-    const up = () => {
-      window.removeEventListener("mousemove", move)
-      window.removeEventListener("mouseup", up)
+
+    // grid — dwa kliknięcia: 1. pierwsza kratka, 2. druga kratka → boxWidth
+    if (!gridFirstClick) {
+      setGridFirstClick(pt)
+      setStatus(`Grid: pierwsza kratka (${pt.x}, ${pt.y}) — kliknij DRUGĄ kratkę`)
+      return
     }
-    window.addEventListener("mousemove", move)
-    window.addEventListener("mouseup", up)
+    const boxWidth = Math.round(Math.abs(pt.x - gridFirstClick.x) * 10) / 10 || DEFAULT_BOX_WIDTH
+    addField({
+      page,
+      x: gridFirstClick.x,
+      y: gridFirstClick.y,
+      dataKey: "",
+      fontSize: DEFAULT_FONT_SIZE,
+      type: "grid",
+      boxWidth,
+      maxCharsPerRow: DEFAULT_MAX_CHARS,
+      rowHeight: DEFAULT_ROW_HEIGHT,
+    })
+    setGridFirstClick(null)
   }
 
   async function handleSave() {
@@ -113,11 +158,60 @@ export function MappingEditor({ templateId }: { templateId: string }) {
     .map((f, idx) => ({ f, idx }))
     .filter(({ f }) => f.page === page)
 
+  const modeBtn = (m: Mode, label: string) => (
+    <button
+      onClick={() => switchMode(m)}
+      className="flex-1 h-8 rounded text-[12px] font-semibold border transition-colors"
+      style={{
+        borderColor: mode === m ? "var(--brand)" : "var(--border)",
+        background: mode === m ? "var(--brand)" : "transparent",
+        color: mode === m ? "#fff" : "var(--text-dim)",
+      }}
+    >
+      {label}
+    </button>
+  )
+
   return (
     <div className="flex h-screen">
       <div className="flex-1 overflow-auto p-4" style={{ position: "relative" }}>
         <div style={{ position: "relative", display: "inline-block" }}>
           <PdfCanvas pdfUrl={mapping.pdfPath} page={page} onReady={setDims} />
+
+          {/* warstwa do stawiania nowych pól (aktywna tylko w trybie text/grid) */}
+          <div
+            onClick={placePoint}
+            style={{
+              position: "absolute",
+              inset: 0,
+              zIndex: 1,
+              cursor: mode === "select" ? "default" : "crosshair",
+              pointerEvents: mode === "select" ? "none" : "auto",
+            }}
+          />
+
+          {/* znacznik pierwszej kratki w trybie grid */}
+          {dims && gridFirstClick && (() => {
+            const gp = pointToPixel(gridFirstClick.x, gridFirstClick.y, dims)
+            return (
+              <div
+                style={{
+                  position: "absolute",
+                  left: gp.x,
+                  top: gp.y,
+                  width: 12,
+                  height: 12,
+                  marginLeft: -6,
+                  marginTop: -6,
+                  borderRadius: "50%",
+                  background: "var(--warn)",
+                  pointerEvents: "none",
+                  zIndex: 4,
+                }}
+              />
+            )
+          })()}
+
           {dims &&
             pageFields.map(({ f, idx }) => {
               const px = pointToPixel(f.x, f.y, dims)
@@ -163,6 +257,19 @@ export function MappingEditor({ templateId }: { templateId: string }) {
       </div>
 
       <aside className="w-80 border-l border-border overflow-auto p-4">
+        {/* Tryb pracy */}
+        <div className="flex gap-1.5 mb-2">
+          {modeBtn("select", "Zaznacz")}
+          {modeBtn("text", "+ Text")}
+          {modeBtn("grid", "+ Grid")}
+        </div>
+        {mode === "grid" && (
+          <div className="text-[11px] text-text-mute mb-4">
+            {gridFirstClick ? "Kliknij DRUGĄ kratkę (wyznaczy boxWidth)" : "Kliknij PIERWSZĄ kratkę pola"}
+          </div>
+        )}
+        {mode === "text" && <div className="text-[11px] text-text-mute mb-4">Kliknij pozycję nowego pola</div>}
+
         <div className="mb-4">
           <label className="block text-[11px] text-text-mute mb-1">Klient-próbka</label>
           <select
@@ -193,7 +300,15 @@ export function MappingEditor({ templateId }: { templateId: string }) {
           const f = mapping.fields[selected]
           return (
             <div className="border border-border rounded p-3 mb-4 flex flex-col gap-2">
-              <div className="text-[11px] font-bold text-text-mute uppercase">Pole #{selected}</div>
+              <div className="flex items-center justify-between">
+                <div className="text-[11px] font-bold text-text-mute uppercase">Pole #{selected}</div>
+                <button
+                  onClick={() => deleteField(selected)}
+                  className="text-[11px] text-[var(--danger)] border border-border rounded px-2 py-0.5 hover:bg-surface-hover"
+                >
+                  Usuń
+                </button>
+              </div>
               <label className="text-[11px] text-text-mute">
                 dataKey
                 <input
@@ -225,19 +340,52 @@ export function MappingEditor({ templateId }: { templateId: string }) {
                   fontSize
                   <input
                     type="number"
-                    value={f.fontSize ?? 11}
+                    value={f.fontSize ?? DEFAULT_FONT_SIZE}
                     onChange={e => updateField(selected, { fontSize: parseFloat(e.target.value) })}
                     className="w-full bg-surface border border-border rounded px-2 py-1 text-[12px]"
                   />
                 </label>
-                {f.type === "grid" && (
+                {f.type === "grid" ? (
+                  <>
+                    <label className="text-[11px] text-text-mute">
+                      boxWidth
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={f.boxWidth ?? DEFAULT_BOX_WIDTH}
+                        onChange={e => updateField(selected, { boxWidth: parseFloat(e.target.value) })}
+                        className="w-full bg-surface border border-border rounded px-2 py-1 text-[12px]"
+                      />
+                    </label>
+                    <label className="text-[11px] text-text-mute">
+                      maxCharsPerRow
+                      <input
+                        type="number"
+                        value={f.maxCharsPerRow ?? DEFAULT_MAX_CHARS}
+                        onChange={e => updateField(selected, { maxCharsPerRow: parseInt(e.target.value) })}
+                        className="w-full bg-surface border border-border rounded px-2 py-1 text-[12px]"
+                      />
+                    </label>
+                    <label className="text-[11px] text-text-mute">
+                      rowHeight
+                      <input
+                        type="number"
+                        value={f.rowHeight ?? DEFAULT_ROW_HEIGHT}
+                        onChange={e => updateField(selected, { rowHeight: parseFloat(e.target.value) })}
+                        className="w-full bg-surface border border-border rounded px-2 py-1 text-[12px]"
+                      />
+                    </label>
+                  </>
+                ) : (
                   <label className="text-[11px] text-text-mute">
-                    boxWidth
+                    maxWidth
                     <input
                       type="number"
-                      step="0.1"
-                      value={f.boxWidth ?? 15.7}
-                      onChange={e => updateField(selected, { boxWidth: parseFloat(e.target.value) })}
+                      value={f.maxWidth ?? ""}
+                      placeholder="opcjonalnie"
+                      onChange={e =>
+                        updateField(selected, { maxWidth: e.target.value ? parseFloat(e.target.value) : undefined })
+                      }
                       className="w-full bg-surface border border-border rounded px-2 py-1 text-[12px]"
                     />
                   </label>
@@ -264,4 +412,22 @@ export function MappingEditor({ templateId }: { templateId: string }) {
       </aside>
     </div>
   )
+
+  function startDrag(e: ReactMouseEvent, idx: number) {
+    e.preventDefault()
+    setSelected(idx)
+    const wrapper = (e.currentTarget as HTMLElement).parentElement!.parentElement!
+    const move = (ev: MouseEvent) => {
+      if (!dims) return
+      const rect = wrapper.getBoundingClientRect()
+      const pt = pixelToPoint(ev.clientX - rect.left, ev.clientY - rect.top, dims)
+      updateField(idx, { x: pt.x, y: pt.y })
+    }
+    const up = () => {
+      window.removeEventListener("mousemove", move)
+      window.removeEventListener("mouseup", up)
+    }
+    window.addEventListener("mousemove", move)
+    window.addEventListener("mouseup", up)
+  }
 }
