@@ -19,20 +19,34 @@ const PdfCanvas = dynamic(() => import("@/components/pdf-canvas").then(m => m.Pd
   ssr: false,
 })
 
-function previewStyle(x: number, y: number, fontSizePt: number, d: PageDims): CSSProperties {
+function previewStyle(
+  x: number,
+  y: number,
+  fontSizePt: number,
+  d: PageDims,
+  maxWidthPt?: number,
+): CSSProperties {
   const scale = d.imageHeightPx / d.pageHeightPt
-  return {
+  const base: CSSProperties = {
     position: "absolute",
     left: x,
     top: y,
-    transform: "translateY(-100%)",
+    // pdf-lib kotwiczy tekst po linii bazowej; dociągamy baseline do punktu
+    // (zamiast dołu ramki), żeby podgląd pokrywał się z realnym PDF.
+    lineHeight: 1,
+    transform: "translateY(-0.8em)",
     fontSize: fontSizePt * scale,
-    fontFamily: "var(--font-sans), sans-serif",
+    fontFamily: "NotoSansPreview, var(--font-sans), sans-serif",
     color: "#111",
     whiteSpace: "nowrap",
     pointerEvents: "none",
     zIndex: 2,
   }
+  if (maxWidthPt != null) {
+    // odpowiednik truncateToWidth z generatora (przycięcie z „…")
+    return { ...base, display: "inline-block", maxWidth: maxWidthPt * scale, overflow: "hidden", textOverflow: "ellipsis" }
+  }
+  return base
 }
 
 export function MappingEditor({ templateId }: { templateId: string }) {
@@ -174,6 +188,8 @@ export function MappingEditor({ templateId }: { templateId: string }) {
 
   return (
     <div className="flex h-screen">
+      {/* ta sama czcionka co w generowanym PDF (osadzona NotoSans) */}
+      <style>{`@font-face{font-family:'NotoSansPreview';src:url('/fonts/NotoSans-Regular.ttf') format('truetype');font-display:swap;}`}</style>
       <div className="flex-1 overflow-auto p-4" style={{ position: "relative" }}>
         <div style={{ position: "relative", display: "inline-block" }}>
           <PdfCanvas pdfUrl={mapping.pdfPath} page={page} onReady={setDims} />
@@ -248,7 +264,7 @@ export function MappingEditor({ templateId }: { templateId: string }) {
                           )
                         })
                       : (
-                          <span style={previewStyle(px.x, px.y, f.fontSize, dims)}>{value}</span>
+                          <span style={previewStyle(px.x, px.y, f.fontSize, dims, f.maxWidth)}>{value}</span>
                         ))}
                 </div>
               )
