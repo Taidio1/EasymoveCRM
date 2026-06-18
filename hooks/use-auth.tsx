@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { getCurrentUser, signIn, signOut, getUserProfile, UserProfile } from "@/lib/superbase"
+import { supabase, getCurrentUser, signIn, signOut, getUserProfile, UserProfile } from "@/lib/superbase"
 import { toast } from "./use-toast"
 
 interface AuthContextType {
@@ -21,27 +21,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   
-  // Sprawdzenie czy użytkownik jest zalogowany przy pierwszym renderowaniu
+  // Sprawdzenie czy użytkownik jest zalogowany oraz nasłuchiwanie zmian sesji.
+  // onAuthStateChange emituje INITIAL_SESSION przy starcie (obsługa pierwszego
+  // renderowania) oraz SIGNED_IN po powrocie z logowania przez Google.
   useEffect(() => {
-    const checkUser = async () => {
-      try { 
+    let active = true
+
+    const loadProfile = async () => {
+      try {
         // Pobieramy profil użytkownika zamiast podstawowych danych
         const userProfile = await getUserProfile()
-        setUser(userProfile)
+        if (active) setUser(userProfile)
       } catch (error) {
         console.error("Błąd podczas pobierania użytkownika:", error)
       } finally {
-        setLoading(false)
+        if (active) setLoading(false)
       }
     }
-    
-    checkUser()
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!active) return
+
+      if (session) {
+        // Odraczamy wywołanie async, aby uniknąć blokady w callbacku Supabase
+        setTimeout(() => {
+          if (active) loadProfile()
+        }, 0)
+      } else {
+        setUser(null)
+        setLoading(false)
+      }
+    })
+
+    return () => {
+      active = false
+      listener.subscription.unsubscribe()
+    }
   }, [])
   
   // Przekierowanie niezalogowanych użytkowników do strony logowania
   useEffect(() => {
     if (!loading) {
-      if (!user && pathname !== "/login") {
+      // Trasy publiczne - dostępne bez zalogowania (np. wejście z linku resetu hasła)
+      const publicPaths = ["/login", "/update-password"]
+      if (!user && !publicPaths.includes(pathname)) {
         router.push("/login")
       } else if (user && pathname === "/login") {
         router.push("/")

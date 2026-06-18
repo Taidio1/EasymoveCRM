@@ -47,6 +47,29 @@ export async function signOut() {
   return await supabase.auth.signOut()
 }
 
+// Logowanie przez Google (OAuth). Po autoryzacji Google przekieruje z powrotem
+// na podany adres (redirectTo), a klient Supabase automatycznie odczyta sesję z URL.
+export async function signInWithGoogle(redirectTo?: string) {
+  return await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo,
+    },
+  })
+}
+
+// Wysłanie linku do resetu hasła na podany email
+export async function resetPassword(email: string, redirectTo?: string) {
+  return await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo,
+  })
+}
+
+// Ustawienie nowego hasła (wymaga aktywnej sesji recovery z linku w mailu)
+export async function updatePassword(password: string) {
+  return await supabase.auth.updateUser({ password })
+}
+
 // Pobranie aktualnego użytkownika
 export async function getCurrentUser(): Promise<User | null> {
   const { data: { user } } = await supabase.auth.getUser()
