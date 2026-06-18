@@ -39,3 +39,22 @@ export function escapeCsvCell(value: unknown): string {
   }
   return str
 }
+
+export function isYes(value: unknown): boolean {
+  if (value === true || value === "true") return true
+  if (typeof value === "string" && value.toLowerCase() === "yes") return true
+  if (value === 1 || value === "1") return true
+  return false
+}
+
+export function emptyToNull(value: string | null | undefined): string | null {
+  if (value === null || value === undefined) return null
+  const trimmed = value.trim()
+  return trimmed === "" ? null : trimmed
+}
+
+export function toDateInputValue(value: string | null | undefined): string {
+  if (!value) return ""
+  // ISO timestamp lub data — bierzemy pierwsze 10 znaków yyyy-MM-dd
+  return value.slice(0, 10)
+}

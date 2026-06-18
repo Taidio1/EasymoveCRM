@@ -1,114 +1,69 @@
 "use client"
 
-import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Client } from "@/lib/superbase"
-import { User, MessageSquare, Send, MoreHorizontal } from "lucide-react"
-import { toast } from "@/hooks/use-toast"
-
-interface NoteProps {
-  author: string
-  date: string
-  content: string
-}
-
-function NoteItem({ author, date, content }: NoteProps) {
-  return (
-    <div className="p-4 rounded-card border border-border bg-surface/30 flex flex-col gap-2 transition-colors hover:bg-surface/50">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-full bg-brand/10 flex items-center justify-center">
-            <User className="h-3 w-3 text-brand" />
-          </div>
-          <span className="text-xs font-semibold text-text">{author}</span>
-          <span className="text-[10px] text-text-mute font-mono uppercase">{date}</span>
-        </div>
-        <Button variant="ghost" size="icon" className="h-6 w-6 text-text-mute hover:text-text">
-          <MoreHorizontal className="h-3.5 w-3.5" />
-        </Button>
-      </div>
-      <p className="text-sm text-text-dim leading-relaxed whitespace-pre-wrap">
-        {content}
-      </p>
-    </div>
-  )
-}
+import { User, MessageSquare } from "lucide-react"
+import { usePanelEditor } from "@/hooks/use-panel-editor"
+import { EditActions } from "@/components/clients/edit-actions"
+import { emptyToNull } from "@/lib/client-utils"
 
 interface NotesPanelProps {
   client: Client
+  onSave: (patch: Partial<Client>) => Promise<void>
 }
 
-export function NotesPanel({ client }: NotesPanelProps) {
-  const [newNote, setNewNote] = useState("")
+interface NotesDraft {
+  Notes: string
+}
 
-  const notes: NoteProps[] = []
-  if (client.Notes) {
-    notes.push({
-      author: client.Creator || "System",
-      date: client.CreatedDate
-        ? new Date(client.CreatedDate).toLocaleDateString("pl-PL")
-        : "Początek",
-      content: client.Notes,
-    })
-  }
+export function NotesPanel({ client, onSave }: NotesPanelProps) {
+  const editor = usePanelEditor<NotesDraft>({
+    initial: () => ({ Notes: client.Notes ?? "" }),
+    toPatch: (draft) => ({ Notes: emptyToNull(draft.Notes) }),
+    onSave,
+  })
 
-  const handleSubmitNote = () => {
-    if (!newNote.trim()) return
-    toast({
-      title: "Funkcja w budowie",
-      description: "Zapis notatek zostanie dodany w kolejnej iteracji.",
-    })
-    setNewNote("")
-  }
+  const author = client.Creator || "System"
+  const date = client.CreatedDate ? new Date(client.CreatedDate).toLocaleDateString("pl-PL") : "Początek"
 
   return (
     <Card className="border-none shadow-none bg-transparent">
       <CardHeader className="px-0 pt-0 pb-6 flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-sm font-bold uppercase tracking-widest text-text-mute flex items-center gap-2">
           <MessageSquare className="h-4 w-4" />
-          Ostatnie Notatki
+          Notatki
         </CardTitle>
-        <Button variant="outline" size="sm" className="h-8 text-xs font-semibold border-border-strong hover:bg-surface">
-          Zobacz wszystkie
-        </Button>
+        <EditActions
+          isEditing={editor.isEditing}
+          isSaving={editor.isSaving}
+          onEdit={editor.startEdit}
+          onSave={editor.submit}
+          onCancel={editor.cancel}
+        />
       </CardHeader>
       <CardContent className="px-0 flex flex-col gap-6">
-        {/* Add Note Area */}
-        <div className="relative group">
-          <Textarea 
-            placeholder="Dodaj nową notatkę..." 
-            className="min-h-[100px] resize-none border-border-strong focus-visible:ring-brand/30 bg-surface/20 focus:bg-surface/50 transition-all rounded-card pr-12 text-sm pt-4"
-            value={newNote}
-            onChange={(e) => setNewNote(e.target.value)}
+        {editor.isEditing ? (
+          <Textarea
+            placeholder="Notatka dotycząca klienta..."
+            className="min-h-[140px] resize-none border-border-strong focus-visible:ring-brand/30 bg-surface/20 rounded-card text-sm p-4"
+            value={editor.draft.Notes}
+            onChange={(e) => editor.setField("Notes", e.target.value)}
           />
-          <Button 
-            size="icon" 
-            className="absolute bottom-3 right-3 h-8 w-8 rounded-btn bg-brand hover:bg-brand-hover shadow-btn-primary transition-all scale-90 opacity-0 group-focus-within:scale-100 group-focus-within:opacity-100"
-            onClick={handleSubmitNote}
-          >
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
-
-        {/* Notes List */}
-        <div className="flex flex-col gap-4">
-          {notes.length === 0 ? (
-            <p className="text-sm text-text-mute italic px-2">
-              Brak notatek dla tego klienta.
-            </p>
-          ) : (
-            notes.map((note, index) => (
-              <NoteItem
-                key={index}
-                author={note.author}
-                date={note.date}
-                content={note.content}
-              />
-            ))
-          )}
-        </div>
+        ) : client.Notes ? (
+          <div className="p-4 rounded-card border border-border bg-surface/30 flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-brand/10 flex items-center justify-center">
+                <User className="h-3 w-3 text-brand" />
+              </div>
+              <span className="text-xs font-semibold text-text">{author}</span>
+              <span className="text-[10px] text-text-mute font-mono uppercase">{date}</span>
+            </div>
+            <p className="text-sm text-text-dim leading-relaxed whitespace-pre-wrap">{client.Notes}</p>
+          </div>
+        ) : (
+          <p className="text-sm text-text-mute italic px-2">Brak notatek dla tego klienta.</p>
+        )}
       </CardContent>
     </Card>
   )

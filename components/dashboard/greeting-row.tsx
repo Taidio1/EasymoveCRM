@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Inbox, Plus } from "lucide-react"
+import { Inbox } from "lucide-react"
 import { format } from "date-fns"
 import { pl } from "date-fns/locale"
 
@@ -25,10 +25,6 @@ export function GreetingRow({ name, stats }: { name: string, stats: { appointmen
         <Button variant="secondary" size="default" className="gap-2">
           <Inbox className="size-4" />
           <span>Inbox</span>
-        </Button>
-        <Button variant="primary" size="default" className="gap-2">
-          <Plus className="size-4" />
-          <span>Dodaj klienta</span>
         </Button>
       </div>
     </div>

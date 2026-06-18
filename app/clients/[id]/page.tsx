@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { Client, getClientById } from "@/lib/superbase"
+import { Client, getClientById, updateClient } from "@/lib/superbase"
+import { diffClientPatch } from "@/lib/client-editor"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import MainLayout from "@/components/main-layout"
 import { toast } from "@/hooks/use-toast"
@@ -11,6 +12,7 @@ import { DetailsHeader } from "@/components/clients/details-header"
 import { TimelinePanel } from "@/components/clients/timeline-panel"
 import { NotesPanel } from "@/components/clients/notes-panel"
 import { ContactPanel } from "@/components/clients/contact-panel"
+import { CaseDataPanel } from "@/components/clients/case-data-panel"
 import { DocsChecklistPanel } from "@/components/clients/docs-checklist-panel"
 import { FinancesPanel } from "@/components/clients/finances-panel"
 import { Card, CardContent } from "@/components/ui/card"
@@ -22,7 +24,26 @@ export default function ClientDetailsPage() {
   
   const [client, setClient] = useState<Client | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  
+
+  const handleSave = async (patch: Partial<Client>): Promise<void> => {
+    if (!client) return
+    const changed = diffClientPatch(client, patch)
+    if (Object.keys(changed).length === 0) return
+    try {
+      const updated = await updateClient(client.id, changed)
+      setClient(updated)
+      toast({ title: "Zapisano", description: "Dane klienta zostały zaktualizowane." })
+    } catch (error) {
+      console.error("Błąd zapisu klienta:", error)
+      toast({
+        title: "Błąd zapisu",
+        description: "Nie udało się zapisać zmian. Spróbuj ponownie.",
+        variant: "destructive",
+      })
+      throw error // pozwala panelowi pozostać w trybie edycji
+    }
+  }
+
   useEffect(() => {
     const fetchClient = async () => {
       if (!clientId) {
@@ -85,7 +106,7 @@ export default function ClientDetailsPage() {
     <MainLayout>
       <div className="flex flex-col gap-8 pb-10">
         {/* New Details Header */}
-        <DetailsHeader client={client} />
+        <DetailsHeader client={client} onSave={handleSave} />
         
         {/* Tab System with Underline Style */}
         <Tabs defaultValue="overview" className="w-full">
@@ -129,14 +150,15 @@ export default function ClientDetailsPage() {
               <div className="flex flex-col gap-12">
                 <TimelinePanel client={client} />
                 <div className="h-px bg-border/60" />
-                <NotesPanel client={client} />
+                <NotesPanel client={client} onSave={handleSave} />
               </div>
-              
+
               {/* Right Column */}
               <div className="flex flex-col gap-6">
-                <ContactPanel client={client} />
-                <DocsChecklistPanel client={client} />
-                <FinancesPanel client={client} />
+                <ContactPanel client={client} onSave={handleSave} />
+                <CaseDataPanel client={client} onSave={handleSave} />
+                <DocsChecklistPanel client={client} onSave={handleSave} />
+                <FinancesPanel client={client} onSave={handleSave} />
               </div>
             </div>
           </TabsContent>
@@ -144,7 +166,7 @@ export default function ClientDetailsPage() {
           <TabsContent value="documents" className="mt-8 border-none p-0 outline-none">
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
               <div className="flex flex-col gap-6">
-                <DocsChecklistPanel client={client} />
+                <DocsChecklistPanel client={client} onSave={handleSave} />
                 <Card>
                   <CardContent className="py-10 text-center text-text-mute">
                     <p className="text-sm">Lista plików w chmurze (Supabase Storage)</p>
@@ -160,7 +182,7 @@ export default function ClientDetailsPage() {
                 </Card>
               </div>
               <div className="flex flex-col gap-6">
-                <ContactPanel client={client} />
+                <ContactPanel client={client} onSave={handleSave} />
               </div>
             </div>
           </TabsContent>
@@ -170,12 +192,12 @@ export default function ClientDetailsPage() {
           </TabsContent>
           
           <TabsContent value="notes" className="mt-8 border-none p-0 outline-none">
-             <NotesPanel client={client} />
+             <NotesPanel client={client} onSave={handleSave} />
           </TabsContent>
-          
+
           <TabsContent value="finance" className="mt-8 border-none p-0 outline-none">
              <div className="max-w-2xl">
-                <FinancesPanel client={client} />
+                <FinancesPanel client={client} onSave={handleSave} />
              </div>
           </TabsContent>
         </Tabs>

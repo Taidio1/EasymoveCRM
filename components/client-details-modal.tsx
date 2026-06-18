@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
-import * as z from "zod"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -42,45 +41,9 @@ import {
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { type Client, supabase, updateClient, uploadClientDocument, deleteClientDocument } from "@/lib/superbase"
+import { clientFormSchema, type ClientFormValues } from "@/lib/client-schema"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useAuth } from "@/hooks/use-auth"
-
-// Schemat formularza klienta
-const clientFormSchema = z.object({
-  Name: z.string().min(2, {
-    message: "Imię i nazwisko musi mieć co najmniej 2 znaki.",
-  }),
-  Status: z.string().min(1, {
-    message: "Status jest wymagany.",
-  }),
-  CelPobytu: z.string().optional(),
-  PodLegPob: z.string().optional(),
-  KrajPoch: z.string().optional(),
-  Phone: z.string().optional(),
-  Adres: z.string().nullable().optional(),
-  StatusPla: z.string().optional(),
-  Email: z.string().optional(),
-  Birthday: z.string().optional(),
-  Notes: z.string().optional(),
-  Creator: z.string().optional(),
-  TotalSpend: z.string().optional(),
-  NumerSprawy: z.string().optional(),
-  Inspektor: z.string().optional(),
-  Firma: z.string().optional(),
-  DataZloWnio: z.string().optional(),
-  DataWydWni: z.string().optional(),
-  DataOdbKartyPob: z.string().optional(),
-  DataOdbDecyzji: z.string().optional(),
-  DataZakLegPob: z.string().optional(),
-  FormWni: z.boolean().default(false),
-  ZalNrJed: z.boolean().default(false),
-  KopiaPasz: z.boolean().default(false),
-  ZalBlue: z.boolean().default(false),
-  CzteZdjecia: z.boolean().default(false),
-  Pelnomocnictwo: z.boolean().default(false),
-})
-
-type ClientFormValues = z.infer<typeof clientFormSchema>
 
 interface ClientDetailsModalProps {
   open: boolean
