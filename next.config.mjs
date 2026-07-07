@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const isLowMemoryBuild = process.env.NEXT_LOW_MEMORY_BUILD === "1"
+
 const nextConfig = {
   // output: 'standalone' for better behavior in Docker
   output: 'standalone',
@@ -14,9 +16,10 @@ const nextConfig = {
     domains: ['avatars.githubusercontent.com'],
   },
   experimental: {
-    webpackBuildWorker: true,
-    parallelServerBuildTraces: true,
-    parallelServerCompiles: true,
+    ...(isLowMemoryBuild ? { cpus: 1 } : {}),
+    webpackBuildWorker: !isLowMemoryBuild,
+    parallelServerBuildTraces: !isLowMemoryBuild,
+    parallelServerCompiles: !isLowMemoryBuild,
   },
 }
 

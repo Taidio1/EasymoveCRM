@@ -18,18 +18,25 @@ yarn-error.log
 # Pliki IDE i edytorów
 .idea
 .vscode
+.claude
+.fallow
+.superpowers
 *.swp
 *.swo
+*.tsbuildinfo
 
 # Pliki systemowe
 .DS_Store
 Thumbs.db
 
 # Dokumentacja
+docs
 README.md
 CHANGELOG.md
 LICENSE
 
 # Testy
 __tests__
-coverage 
+coverage
+*.test.ts
+*.test.tsx
