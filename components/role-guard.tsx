@@ -9,12 +9,15 @@ interface RoleGuardProps extends PropsWithChildren {
 
 export function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
   const { user } = useAuth()
-  
-  // Jeśli użytkownik nie ma roli lub jego rola nie jest dozwolona, nie renderuj niczego
-  if (!user?.role || !allowedRoles.includes(user.role)) {
+
+  // Porównanie bez względu na wielkość liter — role w profiles bywają zapisane
+  // małymi literami (np. "admin"), a w kodzie używamy "Admin"/"Boss".
+  const role = user?.role?.toLowerCase()
+  const allowed = allowedRoles.map((r) => r.toLowerCase())
+  if (!role || !allowed.includes(role)) {
     return null
   }
-  
+
   // W przeciwnym razie renderuj dzieci
   return <>{children}</>
 } 

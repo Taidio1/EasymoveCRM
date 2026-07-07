@@ -35,6 +35,9 @@ const baseClient: Client = {
   Pelnomocnictwo: null,
   country_id: null,
   country_name: null,
+  portal_enabled: false,
+  auth_user_id: null,
+  stage: 1,
 }
 
 describe("filterClientsForDocumentPreview", () => {

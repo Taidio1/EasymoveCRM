@@ -59,17 +59,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
   
-  // Przekierowanie niezalogowanych użytkowników do strony logowania
+  // Przekierowania zależne od roli (klient ↔ CRM)
   useEffect(() => {
-    if (!loading) {
-      // Trasy publiczne - dostępne bez zalogowania (np. wejście z linku resetu hasła)
-      const publicPaths = ["/login", "/update-password"]
-      if (!user && !publicPaths.includes(pathname)) {
-        router.push("/login")
-      } else if (user && pathname === "/login") {
-        router.push("/")
-      }
+    if (loading) return
+    const publicPaths = ["/login", "/update-password"]
+    const isPublic = publicPaths.includes(pathname)
+    const isPanel = pathname === "/panel" || pathname.startsWith("/panel/")
+    const isClient = user?.role === "Client"
+
+    if (!user) {
+      if (!isPublic) router.push("/login")
+      return
     }
+    if (pathname === "/login") {
+      router.push(isClient ? "/panel" : "/")
+      return
+    }
+    // Klient nie wchodzi do CRM; staff nie wchodzi do panelu.
+    if (isClient && !isPanel && !isPublic) router.push("/panel")
+    if (!isClient && isPanel) router.push("/")
   }, [user, loading, pathname, router])
   
   // Funkcja logowania - zaktualizowana

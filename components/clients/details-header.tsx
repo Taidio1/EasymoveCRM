@@ -1,15 +1,27 @@
 "use client"
 
-import { ArrowLeft, Mail, Phone, Plus } from "lucide-react"
+import { ArrowLeft, Mail, Phone, Plus, UserPlus, Loader2, Copy, Check } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Client } from "@/lib/superbase"
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog"
+import { Client, supabase } from "@/lib/superbase"
 import { getInitials, getFlagEmoji, emptyToNull } from "@/lib/client-utils"
 import { usePanelEditor } from "@/hooks/use-panel-editor"
 import { EditActions } from "@/components/clients/edit-actions"
+import { RoleGuard } from "@/components/role-guard"
+import { toast } from "@/hooks/use-toast"
 import { headerSchema, validateWith } from "@/lib/client-schema"
+
+interface InviteResult {
+  email: string
+  password: string
+  emailed: boolean
+}
 
 interface DetailsHeaderProps {
   client: Client
@@ -25,6 +37,50 @@ interface HeaderDraft {
 
 export function DetailsHeader({ client, onSave }: DetailsHeaderProps) {
   const router = useRouter()
+  const [inviting, setInviting] = useState(false)
+  const [result, setResult] = useState<InviteResult | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  const invite = async () => {
+    setInviting(true)
+    try {
+      const { data } = await supabase.auth.getSession()
+      const res = await fetch("/api/panel/invite", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${data.session?.access_token ?? ""}`,
+        },
+        body: JSON.stringify({ clientId: client.id }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (res.ok && body.password) {
+        setCopied(false)
+        setResult({ email: body.email, password: body.password, emailed: Boolean(body.emailed) })
+      } else {
+        toast({
+          title: "Błąd",
+          description: body.error ?? `Nie udało się zaprosić klienta (HTTP ${res.status}).`,
+          variant: "destructive",
+        })
+      }
+    } catch (e) {
+      toast({
+        title: "Błąd",
+        description: e instanceof Error ? e.message : "Nie udało się zaprosić klienta.",
+        variant: "destructive",
+      })
+    } finally {
+      setInviting(false)
+    }
+  }
+
+  const copyCreds = async () => {
+    if (!result) return
+    await navigator.clipboard.writeText(`Login: ${result.email}\nHasło: ${result.password}`)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   const editor = usePanelEditor<HeaderDraft>({
     initial: () => ({
@@ -115,6 +171,18 @@ export function DetailsHeader({ client, onSave }: DetailsHeaderProps) {
           />
           {!editor.isEditing && (
             <>
+              <RoleGuard allowedRoles={["Admin", "Boss"]}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 px-4 text-[13px] font-medium border-border-strong hover:bg-surface-hover text-text-dim hover:text-text"
+                  onClick={invite}
+                  disabled={inviting}
+                >
+                  {inviting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
+                  {client.portal_enabled ? "Ponów zaproszenie" : "Zaproś do panelu"}
+                </Button>
+              </RoleGuard>
               <Button variant="outline" size="sm" className="h-9 px-4 text-[13px] font-medium border-border-strong hover:bg-surface-hover text-text-dim hover:text-text">
                 <Mail className="mr-2 h-4 w-4" />
                 E-mail
@@ -131,6 +199,39 @@ export function DetailsHeader({ client, onSave }: DetailsHeaderProps) {
           )}
         </div>
       </div>
+
+      <Dialog open={!!result} onOpenChange={(o) => !o && setResult(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Dane logowania do panelu</DialogTitle>
+            <DialogDescription>
+              Przekaż je klientowi. Hasło jest tymczasowe — klient może je zmienić po zalogowaniu na <strong>/login</strong>.
+              {result?.emailed
+                ? " Wysłano je również na e-mail administratora."
+                : " (E-mail administratora nieskonfigurowany — skopiuj dane poniżej.)"}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-2 rounded-lg border border-border bg-surface p-3 text-[13px]">
+            <div className="flex justify-between gap-3">
+              <span className="text-text-mute">Login</span>
+              <span className="font-mono font-medium break-all text-right">{result?.email}</span>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span className="text-text-mute">Hasło</span>
+              <span className="font-mono font-medium break-all text-right">{result?.password}</span>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={copyCreds} className="w-full sm:w-auto">
+              {copied ? <Check className="mr-2 h-4 w-4 text-success" /> : <Copy className="mr-2 h-4 w-4" />}
+              {copied ? "Skopiowano" : "Kopiuj login i hasło"}
+            </Button>
+            <Button onClick={() => setResult(null)} className="w-full sm:w-auto">Gotowe</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

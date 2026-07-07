@@ -147,6 +147,9 @@ export interface Client {
   Pelnomocnictwo: boolean | null
   country_id: number | null // foreign key do tabeli countries
   country_name: string | null // nazwa kraju z tabeli countries
+  portal_enabled: boolean
+  auth_user_id: string | null
+  stage: number
 }
 
 // Funkcje do interakcji z bazą danych
@@ -239,7 +242,19 @@ export async function getUserProfile(): Promise<UserProfile | null> {
     console.log("Brak zalogowanego użytkownika");
     return null;
   }
-  
+
+  // Klient panelu: nie ma wiersza w profiles, nie tworzymy go.
+  if (user.user_metadata?.role === "Client") {
+    return {
+      id: user.id,
+      email: user.email || "",
+      first_name: null,
+      last_name: null,
+      role: "Client",
+      avatar_url: null,
+    }
+  }
+
   // Pobierz dane profilu z avatar_url
   const { data: profile, error } = await supabase
     .from('profiles')
@@ -423,6 +438,10 @@ export async function deleteUserAvatar(): Promise<boolean> {
   }
 }
 
+export function isClientRole(role: string | null | undefined): boolean {
+  return role === "Client"
+}
+
 // Funkcja do wgrywania pliku do bucketu documents
 export async function uploadClientDocument(clientId: string, file: File, clientName?: string): Promise<string | null> {
   try {
@@ -455,17 +474,25 @@ export async function uploadClientDocument(clientId: string, file: File, clientN
       return null;
     }
 
-    // Pobierz publiczny URL
-    const { data: urlData } = supabase
-      .storage
-      .from('documents')
-      .getPublicUrl(fileName);
+    // Pobierz signed URL (bucket jest prywatny)
+    const { data: signed } = await supabase
+      .storage.from('documents').createSignedUrl(fileName, 300);
 
-    return urlData?.publicUrl || null;
+    return signed?.signedUrl ?? null;
   } catch (err) {
     console.log(`Błąd podczas wgrywania pliku: ${err instanceof Error ? err.message : 'Nieznany błąd'}`);
     return null;
   }
+}
+
+// Upload dokumentu udostępnianego klientowi w panelu (folder {id}/office/).
+export async function uploadOfficeDocument(clientId: string, file: File): Promise<boolean> {
+  const path = `${clientId}/office/${Date.now()}_${file.name}`;
+  const { error } = await supabase.storage.from('documents').upload(path, file, {
+    cacheControl: '3600', upsert: false, contentType: file.type,
+  });
+  if (error) { console.error('uploadOfficeDocument:', error.message); return false }
+  return true;
 }
 
 // Funkcja do pobierania listy plików klienta
@@ -489,20 +516,20 @@ export async function getClientDocuments(clientId: string, clientName?: string):
       return [];
     }
 
-    // Tworzymy listę plików z URL-ami do pobrania
-    return data.map(file => {
-      const filePath = `${folderPrefix}/${file.name}`;
-      const url = supabase
-        .storage
-        .from('documents')
-        .getPublicUrl(filePath).data.publicUrl;
-
-      return {
-        name: file.name.replace(/^\d+_/, ''), // Usunięcie przedrostka timestamp
-        url: url,
-        path: filePath
-      };
-    });
+    // Tworzymy listę plików z signed URL-ami (bucket jest prywatny)
+    const results = await Promise.all(
+      data.map(async (file) => {
+        const filePath = `${folderPrefix}/${file.name}`;
+        const { data: signed } = await supabase
+          .storage.from('documents').createSignedUrl(filePath, 300);
+        return {
+          name: file.name.replace(/^\d+_/, ''), // Usunięcie przedrostka timestamp
+          url: signed?.signedUrl ?? '',
+          path: filePath,
+        };
+      })
+    );
+    return results;
   } catch (error) {
     console.error('Błąd podczas pobierania listy plików:', error);
     return [];

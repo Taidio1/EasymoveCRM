@@ -1,11 +1,14 @@
 "use client"
 
-import { type Client } from "@/lib/superbase"
+import { useRef, useState } from "react"
+import { type Client, uploadOfficeDocument } from "@/lib/superbase"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { CheckCircle2, AlertCircle } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { CheckCircle2, AlertCircle, Upload, Loader2 } from "lucide-react"
 import { usePanelEditor } from "@/hooks/use-panel-editor"
 import { EditActions } from "@/components/clients/edit-actions"
+import { toast } from "@/hooks/use-toast"
 import { isYes } from "@/lib/client-utils"
 
 interface DocsChecklistPanelProps {
@@ -42,6 +45,21 @@ export function DocsChecklistPanel({ client, onSave }: DocsChecklistPanelProps) 
 
   const completedCount = DOCS.filter((d) => isYes(client[d.key])).length
 
+  const [uploading, setUploading] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const onPickOffice = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    const ok = await uploadOfficeDocument(client.id, file)
+    setUploading(false)
+    if (fileRef.current) fileRef.current.value = ""
+    toast(ok
+      ? { title: "Udostępniono", description: "Plik jest widoczny dla klienta w panelu." }
+      : { title: "Błąd", description: "Nie udało się udostępnić pliku.", variant: "destructive" })
+  }
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
@@ -76,6 +94,16 @@ export function DocsChecklistPanel({ client, onSave }: DocsChecklistPanelProps) 
             )}
           </div>
         ))}
+
+        <div className="mt-2 pt-3 border-t border-border/60">
+          <input ref={fileRef} type="file" className="hidden" onChange={onPickOffice}
+            accept="application/pdf,image/*" />
+          <Button variant="outline" size="sm" className="w-full h-9 text-[13px]"
+            disabled={uploading} onClick={() => fileRef.current?.click()}>
+            {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+            Udostępnij dokument klientowi
+          </Button>
+        </div>
       </CardContent>
     </Card>
   )
