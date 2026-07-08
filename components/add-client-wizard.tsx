@@ -192,7 +192,7 @@ export function AddClientWizard({ open, onOpenChange, onClientCreated }: AddClie
           {...register("Name")}
           placeholder="Jan Kowalski"
           className={cn(inputCls, "ring-2 ring-brand-soft border-brand")}
-          autoFocus
+          autoFocus={!isSmallMobile}
         />
         {errors.Name && (
           <p className="text-[11px] text-danger mt-1">{errors.Name.message}</p>
@@ -389,7 +389,7 @@ export function AddClientWizard({ open, onOpenChange, onClientCreated }: AddClie
                   </div>
                   <span className={cn(
                     "text-[10px] whitespace-nowrap text-center",
-                    isXSmall ? "hidden" : "block",
+                    isSmallMobile || isXSmall ? "hidden" : "block",
                     i === step ? "font-semibold text-text" :
                     i < step   ? "text-text"               :
                                  "text-text-mute"
